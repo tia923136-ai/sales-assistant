@@ -1,0 +1,10 @@
+build:
+  - type: static
+    path: .
+    ignore:
+      - api
+      - requirements.txt
+      - "*.py"
+  - type: serverless
+    path: api
+    runtime: python

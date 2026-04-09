@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星芒话术助手</title>
+  <link rel="manifest" href="data:application/json,{%22name%22:%22星芒话术助手%22,%22short_name%22:%22话术助手%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22theme_color%22:%22%23F09A1A%22,%22background_color%22:%22%23ffffff%22}">
+  <meta name="theme-color" content="#F09A1A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: '#F09A1A', brandDark: '#D4850F' },
+          fontFamily: { sans: ['"Noto Sans SC"', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .toast-enter { animation: slideUp 0.3s ease-out; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans min-h-screen" x-data="app()" x-init="init()" x-cloak>
+
+  <!-- 密码门 -->
+  <template x-if="!authenticated">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm">
+        <div class="text-center mb-6">
+          <div class="text-3xl mb-2">&#x2B50;</div>
+          <h1 class="text-xl font-bold text-gray-900">星芒话术助手</h1>
+          <p class="text-gray-500 text-sm mt-1">输入团队密码进入</p>
+        </div>
+        <form @submit.prevent="login()">
+          <input type="password" x-model="passwordInput" placeholder="团队密码"
+            class="w-full border border-gray-300 rounded-lg px-4 py-3 text-center text-lg focus:outline-none focus:ring-2 focus:ring-brand"
+            autofocus>
+          <p x-show="loginError" class="text-red-500 text-sm mt-2 text-center" x-text="loginError"></p>
+          <button type="submit"
+            class="w-full mt-4 bg-brand text-white py-3 rounded-lg font-medium hover:bg-brandDark transition">
+            进入
+          </button>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <!-- 主界面 -->
+  <template x-if="authenticated">
+    <div class="max-w-2xl mx-auto px-4 py-4">
+      <!-- 顶部搜索 -->
+      <div class="sticky top-0 z-20 bg-gray-50 pb-3">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-xl">&#x2B50;</span>
+          <h1 class="text-lg font-bold text-gray-900 flex-1">星芒话术助手</h1>
+          <button @click="showAI = !showAI"
+            class="text-sm px-3 py-1.5 rounded-lg transition"
+            :class="showAI ? 'bg-brand text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-brand'">
+            AI 回复
+          </button>
+        </div>
+        <div class="relative">
+          <input type="text" x-model="query" x-ref="searchInput"
+            @keydown.down.prevent="moveSelection(1)"
+            @keydown.up.prevent="moveSelection(-1)"
+            @keydown.enter.prevent="copySelected()"
+            @keydown.escape="query = ''; selectedIdx = 0"
+            placeholder="输入关键词搜索话术... (上下键选择，Enter 复制)"
+            class="w-full border border-gray-200 rounded-lg px-4 py-3 pl-10 text-base bg-white focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent shadow-sm">
+          <svg class="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- AI 聊天面板 -->
+      <div x-show="showAI" x-transition class="mb-4 bg-white rounded-lg border border-brand/30 p-4">
+        <p class="text-sm text-gray-500 mb-2">粘贴客户聊天记录，AI 帮你分析客户级别并生成建议回复</p>
+        <textarea x-model="aiInput" rows="4" placeholder="粘贴客户聊天记录..."
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"></textarea>
+        <div class="flex justify-between items-center mt-2">
+          <span x-show="aiLoading" class="text-sm text-gray-400">AI 分析中...</span>
+          <button @click="askAI()" :disabled="aiLoading || !aiInput.trim()"
+            class="ml-auto px-4 py-2 bg-brand text-white text-sm rounded-lg hover:bg-brandDark disabled:opacity-40 transition">
+            <span x-show="!aiLoading">分析并生成回复</span>
+            <span x-show="aiLoading">分析中...</span>
+          </button>
+        </div>
+        <!-- AI 结果 -->
+        <div x-show="aiResult" class="mt-3 bg-gray-50 rounded-lg p-3">
+          <div x-html="formatAIResult(aiResult)" class="text-sm leading-relaxed whitespace-pre-wrap"></div>
+          <button @click="copyText(aiResult)" class="mt-2 text-xs text-brand hover:underline">复制全部</button>
+        </div>
+        <p x-show="aiError" class="mt-2 text-sm text-red-500" x-text="aiError"></p>
+      </div>
+
+      <!-- 分类 Tab -->
+      <div class="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide" x-show="!query">
+        <button @click="activeTab = '全部'"
+          class="shrink-0 px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap"
+          :class="activeTab === '全部' ? 'bg-brand text-white' : 'bg-white text-gray-600 hover:bg-gray-100'">
+          全部
+        </button>
+        <template x-for="cat in categories" :key="cat">
+          <button @click="activeTab = cat"
+            class="shrink-0 px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap"
+            :class="activeTab === cat ? 'bg-brand text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+            x-text="cat"></button>
+        </template>
+      </div>
+
+      <!-- 话术列表 -->
+      <div class="space-y-2">
+        <template x-for="(item, idx) in displayList" :key="item.id">
+          <div @click="copyText(item.content)"
+            class="bg-white rounded-lg border p-3 cursor-pointer transition group"
+            :class="idx === selectedIdx && query ? 'border-brand ring-2 ring-brand/20' : 'border-gray-100 hover:border-brand/40 hover:shadow-sm'">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span x-show="item.featured" class="text-xs bg-brand/10 text-brand px-1.5 py-0.5 rounded">&#x26A1; 快捷</span>
+                  <span class="text-xs text-gray-400" x-text="item.category"></span>
+                  <span x-show="item.espanso_trigger" class="text-xs text-gray-300 font-mono" x-text="item.espanso_trigger"></span>
+                </div>
+                <h3 class="text-sm font-medium text-gray-900 mb-1" x-text="item.title"></h3>
+                <p class="text-xs text-gray-500 line-clamp-2" x-text="item.content.substring(0, 100) + (item.content.length > 100 ? '...' : '')"></p>
+              </div>
+              <div class="shrink-0 opacity-0 group-hover:opacity-100 transition">
+                <span class="text-xs text-brand">点击复制</span>
+              </div>
+            </div>
+            <!-- 展开全文 -->
+            <div x-show="expandedId === item.id" @click.stop class="mt-2 pt-2 border-t border-gray-100">
+              <pre class="text-sm text-gray-700 whitespace-pre-wrap font-sans" x-text="item.content"></pre>
+              <button @click.stop="copyText(item.content)" class="mt-2 text-xs bg-brand text-white px-3 py-1 rounded hover:bg-brandDark">
+                复制全文
+              </button>
+            </div>
+            <button x-show="item.content.length > 100 && expandedId !== item.id"
+              @click.stop="expandedId = item.id"
+              class="mt-1 text-xs text-brand hover:underline">展开全文</button>
+            <button x-show="expandedId === item.id"
+              @click.stop="expandedId = null"
+              class="mt-1 text-xs text-gray-400 hover:underline">收起</button>
+          </div>
+        </template>
+
+        <!-- 空状态 -->
+        <div x-show="displayList.length === 0 && scripts.length > 0" class="text-center py-12">
+          <p class="text-gray-400 mb-2">没找到匹配的话术</p>
+          <button @click="showAI = true; query = ''" class="text-brand hover:underline text-sm">
+            试试 AI 智能回复?
+          </button>
+        </div>
+
+        <!-- 加载状态 -->
+        <div x-show="scripts.length === 0" class="text-center py-12">
+          <p class="text-gray-400">加载话术数据中...</p>
+        </div>
+      </div>
+
+      <!-- 底部信息 -->
+      <div class="text-center text-xs text-gray-300 mt-8 pb-4">
+        共 <span x-text="scripts.length"></span> 条话术 &middot; 星芒AI进化岛内部工具
+      </div>
+    </div>
+  </template>
+
+  <!-- Toast -->
+  <div x-show="toast" x-transition
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm shadow-lg toast-enter z-50">
+    <span x-text="toast"></span>
+  </div>
+
+<script>
+function app() {
+  return {
+    // Auth
+    authenticated: localStorage.getItem('hs_auth') === 'ok',
+    passwordInput: '',
+    loginError: '',
+
+    // Search
+    scripts: [],
+    categories: [],
+    query: '',
+    activeTab: '全部',
+    selectedIdx: 0,
+    expandedId: null,
+    recentIds: JSON.parse(localStorage.getItem('hs_recent') || '[]'),
+
+    // AI
+    showAI: false,
+    aiInput: '',
+    aiResult: '',
+    aiError: '',
+    aiLoading: false,
+
+    // UI
+    toast: '',
+    API_BASE: '', // 部署后填 Zeabur URL
+
+    async init() {
+      if (!this.authenticated) return;
+      try {
+        const res = await fetch('sales-scripts.json');
+        this.scripts = await res.json();
+        this.categories = [...new Set(this.scripts.map(s => s.category))];
+      } catch (e) {
+        console.error('Failed to load scripts:', e);
+      }
+      this.$nextTick(() => this.$refs.searchInput?.focus());
+    },
+
+    login() {
+      // 密码通过 API 验证（如果 API 可用），否则本地验证
+      const pw = this.passwordInput;
+      if (!pw) { this.loginError = '请输入密码'; return; }
+      // 简单本地校验（部署后改为 API 校验）
+      if (pw === 'TEAM2026' || pw === 'starglow2026') {
+        localStorage.setItem('hs_auth', 'ok');
+        this.authenticated = true;
+        this.$nextTick(() => this.init());
+      } else {
+        this.loginError = '密码错误';
+      }
+    },
+
+    get displayList() {
+      let list = this.scripts;
+
+      // 搜索过滤
+      if (this.query) {
+        const q = this.query.toLowerCase();
+        list = list.filter(s =>
+          s.title.toLowerCase().includes(q) ||
+          s.content.toLowerCase().includes(q) ||
+          (s.tags && s.tags.some(t => t.toLowerCase().includes(q))) ||
+          (s.espanso_trigger && s.espanso_trigger.includes(q))
+        );
+      } else if (this.activeTab !== '全部') {
+        list = list.filter(s => s.category === this.activeTab);
+      }
+
+      // 排序：featured 优先，最近使用次之
+      list = [...list].sort((a, b) => {
+        if (a.featured !== b.featured) return b.featured - a.featured;
+        const aRecent = this.recentIds.indexOf(a.id);
+        const bRecent = this.recentIds.indexOf(b.id);
+        if (aRecent !== -1 && bRecent === -1) return -1;
+        if (aRecent === -1 && bRecent !== -1) return 1;
+        if (aRecent !== -1 && bRecent !== -1) return aRecent - bRecent;
+        return 0;
+      });
+
+      // 只渲染前 50 条
+      return list.slice(0, 50);
+    },
+
+    moveSelection(delta) {
+      const len = this.displayList.length;
+      if (len === 0) return;
+      this.selectedIdx = (this.selectedIdx + delta + len) % len;
+    },
+
+    copySelected() {
+      const item = this.displayList[this.selectedIdx];
+      if (item) this.copyText(item.content, item.id);
+    },
+
+    async copyText(text, id) {
+      try {
+        await navigator.clipboard.writeText(text);
+        this.showToast('已复制到剪贴板');
+        if (id) this.trackRecent(id);
+      } catch {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        this.showToast('已复制');
+        if (id) this.trackRecent(id);
+      }
+    },
+
+    trackRecent(id) {
+      this.recentIds = [id, ...this.recentIds.filter(x => x !== id)].slice(0, 20);
+      localStorage.setItem('hs_recent', JSON.stringify(this.recentIds));
+    },
+
+    showToast(msg) {
+      this.toast = msg;
+      setTimeout(() => this.toast = '', 2000);
+    },
+
+    async askAI() {
+      if (this.aiLoading || !this.aiInput.trim()) return;
+      this.aiLoading = true;
+      this.aiResult = '';
+      this.aiError = '';
+
+      try {
+        const apiUrl = this.API_BASE ? `${this.API_BASE}/api/chat` : '/api/chat';
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.passwordInput || localStorage.getItem('hs_pw') || 'TEAM2026'}`
+          },
+          body: JSON.stringify({ message: this.aiInput })
+        });
+        if (res.status === 401) {
+          this.aiError = '认证失败，请刷新页面重新登录';
+          return;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        this.aiResult = data.reply || data.content || '无回复';
+      } catch (e) {
+        this.aiError = 'AI 暂时不可用，请使用搜索查找话术';
+        console.error('AI error:', e);
+      } finally {
+        this.aiLoading = false;
+      }
+    },
+
+    formatAIResult(text) {
+      if (!text) return '';
+      return text
+        .replace(/\n/g, '<br>')
+        .replace(/(📊|💬|📌)/g, '<span class="text-lg">$1</span>');
+    }
+  }
+}
+</script>
+</body>
+</html>
