@@ -24,6 +24,21 @@
     [x-cloak] { display: none !important; }
     .toast-enter { animation: slideUp 0.3s ease-out; }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    mark.hl {
+      background: #FFF1D1;
+      color: #8B4F00;
+      padding: 0 1px;
+      border-radius: 2px;
+    }
+    /* Hide scrollbar on tab row */
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-gray-50 font-sans min-h-screen" x-data="app()" x-init="init()" x-cloak>
@@ -31,19 +46,22 @@
   <!-- 密码门 -->
   <template x-if="!authenticated">
     <div class="min-h-screen flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm">
-        <div class="text-center mb-6">
-          <div class="text-3xl mb-2">&#x2B50;</div>
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-8 w-full max-w-sm">
+        <div class="mb-6">
+          <div class="w-10 h-10 rounded-md bg-brand flex items-center justify-center mb-3">
+            <span class="text-white font-bold text-lg">星</span>
+          </div>
           <h1 class="text-xl font-bold text-gray-900">星芒话术助手</h1>
-          <p class="text-gray-500 text-sm mt-1">输入团队密码进入</p>
+          <p class="text-gray-500 text-sm mt-1">销售团队内部工具</p>
         </div>
         <form @submit.prevent="login()">
-          <input type="password" x-model="passwordInput" placeholder="团队密码"
-            class="w-full border border-gray-300 rounded-lg px-4 py-3 text-center text-lg focus:outline-none focus:ring-2 focus:ring-brand"
+          <label class="block text-xs font-medium text-gray-600 mb-1.5">团队密码</label>
+          <input type="password" x-model="passwordInput" placeholder="向 Tia 获取密码"
+            class="w-full border border-gray-200 rounded-md px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             autofocus>
-          <p x-show="loginError" class="text-red-500 text-sm mt-2 text-center" x-text="loginError"></p>
+          <p x-show="loginError" class="text-red-500 text-sm mt-2" x-text="loginError"></p>
           <button type="submit"
-            class="w-full mt-4 bg-brand text-white py-3 rounded-lg font-medium hover:bg-brandDark transition">
+            class="w-full mt-4 bg-brand text-white py-2.5 rounded-md font-medium hover:bg-brandDark transition">
             进入
           </button>
         </form>
@@ -54,127 +72,191 @@
   <!-- 主界面 -->
   <template x-if="authenticated">
     <div class="max-w-2xl mx-auto px-4 py-4">
-      <!-- 顶部搜索 -->
-      <div class="sticky top-0 z-20 bg-gray-50 pb-3">
+      <!-- 顶部：logo + 搜索 -->
+      <div class="sticky top-0 z-20 bg-gray-50 pt-1 pb-3 -mx-4 px-4">
         <div class="flex items-center gap-2 mb-3">
-          <span class="text-xl">&#x2B50;</span>
-          <h1 class="text-lg font-bold text-gray-900 flex-1">星芒话术助手</h1>
-          <button @click="showAI = !showAI"
-            class="text-sm px-3 py-1.5 rounded-lg transition"
-            :class="showAI ? 'bg-brand text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-brand'">
-            AI 回复
+          <div class="w-7 h-7 rounded-md bg-brand flex items-center justify-center">
+            <span class="text-white font-bold text-sm">星</span>
+          </div>
+          <h1 class="text-base font-bold text-gray-900 flex-1">话术助手</h1>
+          <button @click="toggleAI()"
+            class="text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1"
+            :class="showAI ? 'bg-brand text-white' : 'text-gray-500 hover:text-gray-900'">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/>
+            </svg>
+            AI 智能回复
           </button>
         </div>
         <div class="relative">
           <input type="text" x-model="query" x-ref="searchInput"
+            @input="selectedIdx = 0"
             @keydown.down.prevent="moveSelection(1)"
             @keydown.up.prevent="moveSelection(-1)"
             @keydown.enter.prevent="copySelected()"
             @keydown.escape="query = ''; selectedIdx = 0"
-            placeholder="输入关键词搜索话术... (上下键选择，Enter 复制)"
-            class="w-full border border-gray-200 rounded-lg px-4 py-3 pl-10 text-base bg-white focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent shadow-sm">
-          <svg class="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            placeholder="搜索话术关键词，比如&quot;价格&quot;&quot;退款&quot;&quot;沉默&quot;"
+            class="w-full border border-gray-200 rounded-md px-3 py-2.5 pl-9 text-[15px] bg-white focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+          <svg class="absolute left-2.5 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
+          <span x-show="query" @click="query = ''" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600 cursor-pointer text-sm">清除</span>
         </div>
+        <p class="text-[11px] text-gray-400 mt-1.5 px-0.5">
+          <span class="hidden sm:inline">↑↓ 选择 · Enter 复制 · Esc 清空 · </span>共 <span x-text="scripts.length"></span> 条话术
+        </p>
       </div>
 
       <!-- AI 聊天面板 -->
-      <div x-show="showAI" x-transition class="mb-4 bg-white rounded-lg border border-brand/30 p-4">
-        <p class="text-sm text-gray-500 mb-2">粘贴客户聊天记录，AI 帮你分析客户级别并生成建议回复</p>
-        <textarea x-model="aiInput" rows="4" placeholder="粘贴客户聊天记录..."
-          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"></textarea>
+      <div x-show="showAI" x-transition class="mb-4 bg-white rounded-md border border-brand/30 p-4">
+        <div class="flex items-start gap-2 mb-3">
+          <div class="flex-1">
+            <h2 class="text-sm font-semibold text-gray-900">AI 智能回复</h2>
+            <p class="text-xs text-gray-500">粘贴客户聊天记录，AI 帮你判断级别并生成回复</p>
+          </div>
+          <button @click="showAI = false" class="text-gray-400 hover:text-gray-600 text-xs">收起</button>
+        </div>
+        <textarea x-model="aiInput" rows="4" placeholder="粘贴客户的微信聊天记录..."
+          class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"></textarea>
         <div class="flex justify-between items-center mt-2">
-          <span x-show="aiLoading" class="text-sm text-gray-400">AI 分析中...</span>
+          <span class="text-xs text-gray-400" x-text="aiInput.length + ' 字'"></span>
           <button @click="askAI()" :disabled="aiLoading || !aiInput.trim()"
-            class="ml-auto px-4 py-2 bg-brand text-white text-sm rounded-lg hover:bg-brandDark disabled:opacity-40 transition">
+            class="px-4 py-1.5 bg-brand text-white text-sm rounded-md hover:bg-brandDark disabled:opacity-40 disabled:cursor-not-allowed transition">
             <span x-show="!aiLoading">分析并生成回复</span>
-            <span x-show="aiLoading">分析中...</span>
+            <span x-show="aiLoading">AI 思考中...</span>
           </button>
         </div>
         <!-- AI 结果 -->
-        <div x-show="aiResult" class="mt-3 bg-gray-50 rounded-lg p-3">
-          <div x-html="formatAIResult(aiResult)" class="text-sm leading-relaxed whitespace-pre-wrap"></div>
-          <button @click="copyText(aiResult)" class="mt-2 text-xs text-brand hover:underline">复制全部</button>
+        <div x-show="aiResult" class="mt-3 bg-gray-50 rounded-md p-3 border border-gray-100">
+          <div x-html="formatAIResult(aiResult)" class="text-sm leading-relaxed text-gray-800"></div>
+          <div class="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+            <button @click="copyText(aiResult)" class="text-xs bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark">
+              复制全部
+            </button>
+            <button @click="aiInput = ''; aiResult = ''" class="text-xs text-gray-500 hover:text-gray-900">
+              重新分析
+            </button>
+          </div>
         </div>
         <p x-show="aiError" class="mt-2 text-sm text-red-500" x-text="aiError"></p>
       </div>
 
-      <!-- 分类 Tab -->
-      <div class="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide" x-show="!query">
-        <button @click="activeTab = '全部'"
-          class="shrink-0 px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap"
-          :class="activeTab === '全部' ? 'bg-brand text-white' : 'bg-white text-gray-600 hover:bg-gray-100'">
-          全部
+      <!-- 分类 Tab（搜索时也显示，标记当前活跃分类） -->
+      <div class="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+        <button @click="activeTab = '全部'; query = ''"
+          class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border"
+          :class="activeTab === '全部' && !query ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'">
+          全部 <span class="opacity-60" x-text="scripts.length"></span>
         </button>
         <template x-for="cat in categories" :key="cat">
-          <button @click="activeTab = cat"
-            class="shrink-0 px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap"
-            :class="activeTab === cat ? 'bg-brand text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
-            x-text="cat"></button>
+          <button @click="activeTab = cat; query = ''"
+            class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border"
+            :class="activeTab === cat && !query ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'">
+            <span x-text="cat"></span>
+            <span class="opacity-60" x-text="categoryCount(cat)"></span>
+          </button>
         </template>
+      </div>
+
+      <!-- 搜索状态提示 -->
+      <div x-show="query" class="mb-3 text-xs text-gray-500 flex items-center justify-between">
+        <span>搜索 "<span class="text-gray-900 font-medium" x-text="query"></span>" 找到 <span x-text="displayList.length"></span> 条</span>
+        <button @click="query = ''" class="text-brand hover:underline">返回分类浏览</button>
       </div>
 
       <!-- 话术列表 -->
       <div class="space-y-2">
         <template x-for="(item, idx) in displayList" :key="item.id">
-          <div @click="copyText(item.content)"
-            class="bg-white rounded-lg border p-3 cursor-pointer transition group"
-            :class="idx === selectedIdx && query ? 'border-brand ring-2 ring-brand/20' : 'border-gray-100 hover:border-brand/40 hover:shadow-sm'">
-            <div class="flex items-start justify-between gap-2">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <span x-show="item.featured" class="text-xs bg-brand/10 text-brand px-1.5 py-0.5 rounded">&#x26A1; 快捷</span>
-                  <span class="text-xs text-gray-400" x-text="item.category"></span>
-                  <span x-show="item.espanso_trigger" class="text-xs text-gray-300 font-mono" x-text="item.espanso_trigger"></span>
+          <div @click="toggleExpand(item.id)"
+            class="bg-white rounded-md border relative cursor-pointer transition"
+            :class="idx === selectedIdx && query ? 'border-brand ring-2 ring-brand/20' : 'border-gray-100 hover:border-gray-300'">
+            <!-- Featured 左侧细条 -->
+            <div x-show="item.featured" class="absolute left-0 top-0 bottom-0 w-1 bg-brand rounded-l-md"></div>
+
+            <div class="p-3 pl-4">
+              <!-- 标题行 -->
+              <div class="flex items-start justify-between gap-2 mb-1">
+                <h3 class="text-[15px] font-medium text-gray-900 flex-1 leading-snug" x-html="highlight(item.title)"></h3>
+                <button @click.stop="copyText(item.content, item.id)"
+                  class="shrink-0 text-xs text-gray-400 hover:text-brand font-medium transition"
+                  title="复制话术">
+                  复制
+                </button>
+              </div>
+
+              <!-- 预览 -->
+              <p x-show="expandedId !== item.id" class="text-sm text-gray-500 line-clamp-2 leading-relaxed" x-html="highlight(item.content)"></p>
+
+              <!-- 全文 -->
+              <div x-show="expandedId === item.id" @click.stop class="mt-1">
+                <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed" x-html="highlight(item.content)"></div>
+                <div class="flex gap-2 mt-3 pt-2 border-t border-gray-100">
+                  <button @click.stop="copyText(item.content, item.id)"
+                    class="text-xs bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark transition">
+                    复制全文
+                  </button>
+                  <button @click.stop="expandedId = null" class="text-xs text-gray-500 hover:text-gray-900">
+                    收起
+                  </button>
                 </div>
-                <h3 class="text-sm font-medium text-gray-900 mb-1" x-text="item.title"></h3>
-                <p class="text-xs text-gray-500 line-clamp-2" x-text="item.content.substring(0, 100) + (item.content.length > 100 ? '...' : '')"></p>
               </div>
-              <div class="shrink-0 opacity-0 group-hover:opacity-100 transition">
-                <span class="text-xs text-brand">点击复制</span>
+
+              <!-- Meta 信息（底部，次要） -->
+              <div class="flex items-center gap-2 mt-2 text-[11px]">
+                <span class="text-gray-400" x-text="item.category"></span>
+                <span x-show="item.espanso_trigger" class="text-gray-300">·</span>
+                <span x-show="item.espanso_trigger" class="text-gray-400 font-mono" x-text="item.espanso_trigger"></span>
+                <span x-show="item.featured" class="text-gray-300">·</span>
+                <span x-show="item.featured" class="text-brand font-medium">常用</span>
               </div>
             </div>
-            <!-- 展开全文 -->
-            <div x-show="expandedId === item.id" @click.stop class="mt-2 pt-2 border-t border-gray-100">
-              <pre class="text-sm text-gray-700 whitespace-pre-wrap font-sans" x-text="item.content"></pre>
-              <button @click.stop="copyText(item.content)" class="mt-2 text-xs bg-brand text-white px-3 py-1 rounded hover:bg-brandDark">
-                复制全文
-              </button>
-            </div>
-            <button x-show="item.content.length > 100 && expandedId !== item.id"
-              @click.stop="expandedId = item.id"
-              class="mt-1 text-xs text-brand hover:underline">展开全文</button>
-            <button x-show="expandedId === item.id"
-              @click.stop="expandedId = null"
-              class="mt-1 text-xs text-gray-400 hover:underline">收起</button>
           </div>
         </template>
 
-        <!-- 空状态 -->
-        <div x-show="displayList.length === 0 && scripts.length > 0" class="text-center py-12">
-          <p class="text-gray-400 mb-2">没找到匹配的话术</p>
-          <button @click="showAI = true; query = ''" class="text-brand hover:underline text-sm">
-            试试 AI 智能回复?
-          </button>
+        <!-- 空状态：搜索无结果 -->
+        <div x-show="displayList.length === 0 && scripts.length > 0 && query" class="text-center py-12 px-4">
+          <div class="max-w-xs mx-auto">
+            <p class="text-gray-900 font-medium mb-1">没找到"<span x-text="query"></span>"相关的话术</p>
+            <p class="text-sm text-gray-500 mb-4">试试换个关键词，或者让 AI 帮你想一个</p>
+            <button @click="aiInput = query; showAI = true; query = ''"
+              class="bg-brand text-white text-sm px-4 py-2 rounded-md hover:bg-brandDark transition">
+              用 AI 生成回复
+            </button>
+          </div>
         </div>
 
-        <!-- 加载状态 -->
-        <div x-show="scripts.length === 0" class="text-center py-12">
-          <p class="text-gray-400">加载话术数据中...</p>
+        <!-- 空状态：分类下无数据 -->
+        <div x-show="displayList.length === 0 && scripts.length > 0 && !query" class="text-center py-12">
+          <p class="text-gray-400 text-sm">这个分类暂时没有话术</p>
         </div>
+
+        <!-- 加载骨架屏 -->
+        <template x-if="scripts.length === 0">
+          <div class="space-y-2">
+            <template x-for="i in 6">
+              <div class="bg-white rounded-md border border-gray-100 p-3">
+                <div class="h-4 bg-gray-100 rounded w-3/4 mb-2 animate-pulse"></div>
+                <div class="h-3 bg-gray-100 rounded w-full mb-1 animate-pulse"></div>
+                <div class="h-3 bg-gray-100 rounded w-2/3 animate-pulse"></div>
+              </div>
+            </template>
+          </div>
+        </template>
       </div>
 
       <!-- 底部信息 -->
-      <div class="text-center text-xs text-gray-300 mt-8 pb-4">
-        共 <span x-text="scripts.length"></span> 条话术 &middot; 星芒AI进化岛内部工具
+      <div class="text-center text-xs text-gray-400 mt-8 pb-4">
+        星芒AI进化岛 · 销售团队内部工具
       </div>
     </div>
   </template>
 
-  <!-- Toast -->
+  <!-- Toast（移动端避开键盘，用顶部） -->
   <div x-show="toast" x-transition
-    class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm shadow-lg toast-enter z-50">
+    class="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-md text-sm shadow-lg toast-enter z-50 flex items-center gap-2">
+    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+    </svg>
     <span x-text="toast"></span>
   </div>
 
@@ -186,9 +268,11 @@ function app() {
     passwordInput: '',
     loginError: '',
 
-    // Search
+    // Data
     scripts: [],
     categories: [],
+
+    // Search / navigation
     query: '',
     activeTab: '全部',
     selectedIdx: 0,
@@ -204,7 +288,7 @@ function app() {
 
     // UI
     toast: '',
-    API_BASE: '', // 部署后填 Zeabur URL
+    API_BASE: '',
 
     async init() {
       if (!this.authenticated) return;
@@ -219,23 +303,33 @@ function app() {
     },
 
     login() {
-      // 密码通过 API 验证（如果 API 可用），否则本地验证
       const pw = this.passwordInput;
       if (!pw) { this.loginError = '请输入密码'; return; }
-      // 简单本地校验（部署后改为 API 校验）
       if (pw === 'TEAM2026' || pw === 'starglow2026') {
         localStorage.setItem('hs_auth', 'ok');
+        localStorage.setItem('hs_pw', pw);
         this.authenticated = true;
         this.$nextTick(() => this.init());
       } else {
-        this.loginError = '密码错误';
+        this.loginError = '密码错误，向 Tia 确认';
       }
+    },
+
+    toggleAI() {
+      this.showAI = !this.showAI;
+    },
+
+    toggleExpand(id) {
+      this.expandedId = this.expandedId === id ? null : id;
+    },
+
+    categoryCount(cat) {
+      return this.scripts.filter(s => s.category === cat).length;
     },
 
     get displayList() {
       let list = this.scripts;
 
-      // 搜索过滤
       if (this.query) {
         const q = this.query.toLowerCase();
         list = list.filter(s =>
@@ -248,7 +342,7 @@ function app() {
         list = list.filter(s => s.category === this.activeTab);
       }
 
-      // 排序：featured 优先，最近使用次之
+      // 排序：featured 优先，最近使用次之，其余稳定
       list = [...list].sort((a, b) => {
         if (a.featured !== b.featured) return b.featured - a.featured;
         const aRecent = this.recentIds.indexOf(a.id);
@@ -259,14 +353,28 @@ function app() {
         return 0;
       });
 
-      // 只渲染前 50 条
       return list.slice(0, 50);
+    },
+
+    highlight(text) {
+      if (!text) return '';
+      // HTML 转义
+      const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (!this.query) return escaped;
+      // 转义正则特殊字符
+      const q = this.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return escaped.replace(new RegExp(q, 'gi'), m => `<mark class="hl">${m}</mark>`);
     },
 
     moveSelection(delta) {
       const len = this.displayList.length;
       if (len === 0) return;
       this.selectedIdx = (this.selectedIdx + delta + len) % len;
+      // 滚动到视图
+      this.$nextTick(() => {
+        const el = document.querySelectorAll('[x-html]')[this.selectedIdx];
+        el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
     },
 
     copySelected() {
@@ -277,10 +385,9 @@ function app() {
     async copyText(text, id) {
       try {
         await navigator.clipboard.writeText(text);
-        this.showToast('已复制到剪贴板');
+        this.showToast('已复制，去微信粘贴吧');
         if (id) this.trackRecent(id);
       } catch {
-        // Fallback
         const ta = document.createElement('textarea');
         ta.value = text;
         document.body.appendChild(ta);
@@ -314,7 +421,7 @@ function app() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.passwordInput || localStorage.getItem('hs_pw') || 'TEAM2026'}`
+            'Authorization': `Bearer ${localStorage.getItem('hs_pw') || 'TEAM2026'}`
           },
           body: JSON.stringify({ message: this.aiInput })
         });
@@ -326,7 +433,7 @@ function app() {
         const data = await res.json();
         this.aiResult = data.reply || data.content || '无回复';
       } catch (e) {
-        this.aiError = 'AI 暂时不可用，请使用搜索查找话术';
+        this.aiError = 'AI 暂时不可用，试试直接搜索话术';
         console.error('AI error:', e);
       } finally {
         this.aiLoading = false;
@@ -335,9 +442,10 @@ function app() {
 
     formatAIResult(text) {
       if (!text) return '';
-      return text
+      const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return escaped
         .replace(/\n/g, '<br>')
-        .replace(/(📊|💬|📌)/g, '<span class="text-lg">$1</span>');
+        .replace(/(📊|💬|📌)/g, '<span class="text-base">$1</span>');
     }
   }
 }
