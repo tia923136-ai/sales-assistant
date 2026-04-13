@@ -314,6 +314,25 @@
                   <button @click.stop="expandedId = null" class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer">
                     收起
                   </button>
+                  <button @click.stop="inlineAddFor = (inlineAddFor === item.id ? null : item.id); inlineAddForm = {title: '', content: '', category: item.category}"
+                    class="text-xs text-emerald-500 hover:text-emerald-700 cursor-pointer ml-auto">
+                    + 加一条
+                  </button>
+                </div>
+                <!-- 内联快速添加 -->
+                <div x-show="inlineAddFor === item.id" x-transition class="mt-3 p-3 bg-emerald-50 rounded-md border border-emerald-200">
+                  <input type="text" x-model="inlineAddForm.title" placeholder="话术标题（如：外贸客户追问成品）"
+                    class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm mb-2 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                  <textarea x-model="inlineAddForm.content" rows="3" placeholder="话术内容（直接能复制发给客户的文字）"
+                    class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm mb-2 focus:outline-none focus:ring-1 focus:ring-emerald-400 resize-none"></textarea>
+                  <div class="flex items-center gap-2">
+                    <button @click.stop="saveInlineScript()" :disabled="!inlineAddForm.title.trim() || !inlineAddForm.content.trim()"
+                      class="text-xs bg-emerald-500 text-white px-3 py-1.5 rounded hover:bg-emerald-600 disabled:opacity-40 cursor-pointer">
+                      保存
+                    </button>
+                    <button @click.stop="inlineAddFor = null" class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer">取消</button>
+                    <span class="text-[11px] text-gray-400 ml-auto" x-text="'分类: ' + inlineAddForm.category"></span>
+                  </div>
                 </div>
               </div>
 
@@ -492,6 +511,10 @@ function app() {
     aiLoading: false,
     aiMessages: [],
     aiImages: [],   // [{name, base64, preview, mediaType}]
+
+    // 内联快速添加话术
+    inlineAddFor: null,  // 当前展开内联表单的话术ID
+    inlineAddForm: { title: '', content: '', category: '' },
 
     // Custom script editor
     showEditor: false,
@@ -691,6 +714,25 @@ function app() {
       localStorage.setItem('hs_custom', JSON.stringify(this.customScripts));
       this.showEditor = false;
       this.showToast(this.editingScript ? '话术已更新' : '话术已添加');
+    },
+
+    saveInlineScript() {
+      const f = this.inlineAddForm;
+      if (!f.title.trim() || !f.content.trim()) return;
+      this.customScripts.push({
+        id: 'custom-' + Date.now(),
+        title: f.title.trim(),
+        content: f.content.trim(),
+        category: f.category || '自定义',
+        tags: [],
+        featured: false,
+        espanso_trigger: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      localStorage.setItem('hs_custom', JSON.stringify(this.customScripts));
+      this.inlineAddFor = null;
+      this.showToast('话术已添加');
     },
 
     deleteCustomScript(id) {
