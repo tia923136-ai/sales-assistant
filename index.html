@@ -165,8 +165,9 @@
         </div>
         <!-- 输入区 -->
         <div class="relative">
-          <textarea x-model="aiInput" rows="4" placeholder="粘贴客户的微信聊天记录，或直接 Ctrl+V 粘贴截图..."
+          <textarea x-model="aiInput" rows="3" placeholder="粘贴客户的微信聊天记录，或直接 Ctrl+V 粘贴截图..."
             @paste="handlePaste($event)"
+            @input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 200) + 'px'"
             class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none pr-10"></textarea>
           <label class="absolute right-2 bottom-2 cursor-pointer text-gray-400 hover:text-brand transition" title="上传聊天截图">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"/></svg>
@@ -197,7 +198,7 @@
               <div class="flex items-center justify-between mb-1">
                 <span class="text-xs font-medium text-brand" x-text="script.label"></span>
                 <button @click="copyText(script.content)"
-                  class="text-xs bg-brand text-white px-2.5 py-1 rounded hover:bg-brandDark cursor-pointer">
+                  class="text-sm bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark cursor-pointer">
                   复制
                 </button>
               </div>
