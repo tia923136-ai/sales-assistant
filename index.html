@@ -216,8 +216,8 @@
           </div>
           <!-- 操作按钮 -->
           <div class="flex flex-wrap gap-2 pt-1">
-            <button @click="copyText(aiResult)" class="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-300 cursor-pointer">
-              复制全部
+            <button @click="copyAIReplyOnly()" class="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-300 cursor-pointer">
+              复制全部话术
             </button>
             <button @click="aiInput = ''; aiResult = ''; aiImages = []" class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer">
               重新分析
@@ -651,7 +651,10 @@ function app() {
           localStorage.setItem('hs_role', 'partner');
         }
         this.authenticated = true;
-        this.$nextTick(() => this.init());
+        this.$nextTick(() => {
+          this.init();
+          if (pw === 'starglow2026') this.showToast('已切换到合伙人模式');
+        });
       } else {
         this.loginError = '密码错误，向 Tia 确认';
       }
