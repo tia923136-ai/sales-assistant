@@ -47,6 +47,10 @@
     .prose-sm strong { color: #111827; }
     /* Modal overlay */
     .modal-overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); }
+    @keyframes dot { 0%, 20% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+    .thinking-dots span { animation: dot 1.4s infinite; }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
   </style>
 </head>
 <body class="bg-gray-50 font-sans min-h-screen" x-data="app()" x-init="init()" x-cloak>
@@ -184,7 +188,7 @@
           <button @click="askAI()" :disabled="aiLoading || (!aiInput.trim() && aiImages.length === 0)"
             class="px-4 py-1.5 bg-brand text-white text-sm rounded-md hover:bg-brandDark disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer">
             <span x-show="!aiLoading" x-text="aiMessages.length > 0 ? '继续追问' : '分析并生成回复'"></span>
-            <span x-show="aiLoading">AI 思考中...</span>
+            <span x-show="aiLoading" class="thinking-dots">AI 思考中<span>.</span><span>.</span><span>.</span></span>
           </button>
         </div>
         <!-- AI 结果（三条话术卡片） -->
