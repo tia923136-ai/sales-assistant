@@ -6,6 +6,7 @@
   <title>星芒话术助手</title>
   <link rel="manifest" href="data:application/json,{%22name%22:%22星芒话术助手%22,%22short_name%22:%22话术助手%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22theme_color%22:%22%23F09A1A%22,%22background_color%22:%22%23ffffff%22}">
   <meta name="theme-color" content="#F09A1A">
+  <meta name="description" content="星芒AI进化岛销售话术助手 — 话术秒搜秒用，AI智能生成回复，支持截图识别">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -59,7 +60,7 @@
             <span class="text-white font-bold text-lg">星</span>
           </div>
           <h1 class="text-xl font-bold text-gray-900">星芒话术助手</h1>
-          <p class="text-gray-500 text-sm mt-1">销售团队内部工具</p>
+          <p class="text-gray-500 text-sm mt-1">话术秒搜 · AI 智能回复 · 截图识别</p>
         </div>
         <form @submit.prevent="login()">
           <label class="block text-xs font-medium text-gray-600 mb-1.5">团队密码</label>
@@ -621,6 +622,11 @@ function app() {
         this.loadError = true;
       }
       this.$nextTick(() => this.$refs.searchInput?.focus());
+      // 新用户首次登录自动展开 AI 面板
+      if (!localStorage.getItem('hs_ai_seen')) {
+        this.showAI = true;
+        localStorage.setItem('hs_ai_seen', '1');
+      }
       // 注册 Service Worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
