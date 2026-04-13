@@ -236,6 +236,12 @@
           :class="activeTab === '全部' && !query ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'">
           全部 <span class="opacity-60" x-text="filteredByRole.length"></span>
         </button>
+        <!-- 最近使用 Tab -->
+        <button x-show="recentIds.length > 0" @click="activeTab = '最近'; query = ''"
+          class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border cursor-pointer"
+          :class="activeTab === '最近' && !query ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-200 hover:border-blue-400'">
+          最近
+        </button>
         <!-- 收藏夹 Tab -->
         <button x-show="favorites.size > 0" @click="activeTab = '收藏'; query = ''"
           class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border cursor-pointer"
@@ -573,6 +579,12 @@ function app() {
           if (titlePy && titlePy.includes(q)) return true;
           return false;
         });
+      } else if (this.activeTab === '最近') {
+        const recentSet = new Set(this.recentIds);
+        list = list.filter(s => recentSet.has(s.id));
+        // 按最近使用顺序排序
+        list.sort((a, b) => this.recentIds.indexOf(a.id) - this.recentIds.indexOf(b.id));
+        return list.slice(0, 20);
       } else if (this.activeTab === '收藏') {
         list = list.filter(s => this.favorites.has(s.id));
       } else if (this.activeTab === '自定义') {
