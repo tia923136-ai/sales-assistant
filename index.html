@@ -105,6 +105,7 @@
           </button>
         </div>
         <!-- 角色选择器 -->
+        <div class="text-[11px] text-gray-400 mb-1 px-0.5">我的身份</div>
         <div class="flex gap-1 mb-2.5 bg-gray-100 rounded-md p-0.5">
           <template x-for="r in [{id:'tia',label:'Tia 本人'},{id:'partner',label:'合伙人'},{id:'bd',label:'企业BD'}]" :key="r.id">
             <button @click="setRole(r.id)"
