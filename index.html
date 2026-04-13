@@ -178,7 +178,7 @@
         <div class="flex justify-between items-center mt-2">
           <div class="flex items-center gap-3">
             <span class="text-xs" :class="aiInput.length > 3000 ? 'text-red-500' : 'text-gray-400'" x-text="aiInput.length + ' 字' + (aiInput.length > 3000 ? '（建议精简）' : '') + (aiImages.length > 0 ? ' + ' + aiImages.length + '张图' : '')"></span>
-            <button x-show="aiMessages.length > 0" @click="aiMessages = []; aiResult = ''; aiImages = []"
+            <button x-show="aiMessages.length > 0" @click="if(confirm('清空全部对话？')) { aiMessages = []; aiResult = ''; aiImages = []; }"
               class="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">清空对话</button>
           </div>
           <button @click="askAI()" :disabled="aiLoading || (!aiInput.trim() && aiImages.length === 0)"
@@ -842,6 +842,7 @@ function app() {
     },
 
     logout() {
+      if (!confirm('退出后需要重新输入密码')) return;
       localStorage.removeItem('hs_auth');
       localStorage.removeItem('hs_pw');
       localStorage.removeItem('hs_recent');
