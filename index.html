@@ -149,7 +149,7 @@
         </div>
         <!-- 对话历史（多轮） -->
         <template x-if="aiMessages.length > 0">
-          <div class="mb-3 space-y-2 max-h-60 overflow-y-auto">
+          <div class="mb-3 space-y-2 max-h-60 overflow-y-auto scroll-smooth" x-ref="chatHistory">
             <template x-for="(msg, i) in aiMessages" :key="i">
               <div class="text-sm rounded-md p-2" :class="msg.role === 'user' ? 'bg-gray-100 text-gray-700' : 'bg-brand/5 text-gray-800'">
                 <span class="text-[11px] font-medium" :class="msg.role === 'user' ? 'text-gray-500' : 'text-brand'" x-text="msg.role === 'user' ? '你' : 'AI'"></span>
@@ -207,7 +207,7 @@
                   复制
                 </button>
               </div>
-              <div class="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap" x-text="script.content"></div>
+              <div class="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap border border-transparent hover:border-gray-200 rounded p-1 -m-1 focus:outline-none focus:border-brand/30 focus:bg-brand/5 transition" contenteditable="true" @blur="script.content = $el.innerText" x-text="script.content"></div>
             </div>
           </template>
           <!-- 下一步 -->
@@ -978,6 +978,7 @@ function app() {
         this.aiMessages.push({ role: 'assistant', content: reply });
         this.aiInput = '';
         this.aiImages = [];
+        this.$nextTick(() => { if (this.$refs.chatHistory) this.$refs.chatHistory.scrollTop = this.$refs.chatHistory.scrollHeight; });
       } catch (e) {
         this.aiError = 'AI 暂时不可用，试试直接搜索话术';
         this.aiMessages.pop();
