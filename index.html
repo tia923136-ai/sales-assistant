@@ -7,6 +7,7 @@
   <link rel="manifest" href="data:application/json,{%22name%22:%22星芒话术助手%22,%22short_name%22:%22话术助手%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22theme_color%22:%22%23F09A1A%22,%22background_color%22:%22%23ffffff%22}">
   <meta name="theme-color" content="#F09A1A">
   <meta name="description" content="星芒AI进化岛销售话术助手 — 话术秒搜秒用，AI智能生成回复，支持截图识别">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23F09A1A'/><text x='50' y='68' font-size='56' font-weight='bold' fill='white' text-anchor='middle' font-family='sans-serif'>星</text></svg>">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -219,7 +220,7 @@
             <button @click="copyAIReplyOnly()" class="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-300 cursor-pointer">
               复制全部话术
             </button>
-            <button @click="aiInput = ''; aiResult = ''; aiImages = []" class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer">
+            <button @click="aiInput = ''; aiResult = ''; aiImages = []; $nextTick(() => { const ta = $el.closest('.bg-white')?.querySelector('textarea'); if(ta) ta.focus(); })" class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer">
               重新分析
             </button>
           </div>
@@ -414,7 +415,7 @@
 
       <!-- 底部信息 -->
       <div class="text-center text-xs text-gray-400 mt-8 pb-4">
-        星芒AI进化岛 · 销售团队内部工具 · v2.1
+        星芒AI进化岛 · 话术助手
         <span class="mx-1">·</span>
         <button @click="exportCustomScripts()" x-show="customScripts.length > 0"
           class="text-gray-400 hover:text-brand transition cursor-pointer">导出自定义话术</button>
