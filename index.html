@@ -93,6 +93,15 @@
             AI 智能回复
           </button>
         </div>
+        <!-- 角色选择器 -->
+        <div class="flex gap-1 mb-2.5 bg-gray-100 rounded-md p-0.5">
+          <template x-for="r in [{id:'tia',label:'Tia 本人'},{id:'partner',label:'合伙人'},{id:'bd',label:'企业BD'}]" :key="r.id">
+            <button @click="setRole(r.id)"
+              class="flex-1 text-xs py-1.5 rounded transition-all cursor-pointer text-center"
+              :class="role === r.id ? 'bg-white text-gray-900 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'"
+              x-text="r.label"></button>
+          </template>
+        </div>
         <div class="relative">
           <input type="text" x-model="query" x-ref="searchInput"
             @input="selectedIdx = 0"
@@ -109,7 +118,7 @@
           <span x-show="query" @click="query = ''" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600 cursor-pointer text-sm">清除</span>
         </div>
         <p class="text-[11px] text-gray-400 mt-1.5 px-0.5">
-          <span class="hidden sm:inline">↑↓ 选择 · Enter 复制 · Esc 清空 · </span>共 <span x-text="scripts.length"></span> 条话术
+          <span class="hidden sm:inline">↑↓ 选择 · Enter 复制 · Esc 清空 · </span>共 <span x-text="filteredByRole.length"></span> 条话术
         </p>
       </div>
 
@@ -154,9 +163,9 @@
         <button @click="activeTab = '全部'; query = ''"
           class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border cursor-pointer"
           :class="activeTab === '全部' && !query ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'">
-          全部 <span class="opacity-60" x-text="scripts.length"></span>
+          全部 <span class="opacity-60" x-text="filteredByRole.length"></span>
         </button>
-        <template x-for="cat in categories" :key="cat">
+        <template x-for="cat in roleCategories" :key="cat">
           <button @click="activeTab = cat; query = ''"
             class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border cursor-pointer"
             :class="activeTab === cat && !query ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'">
@@ -284,6 +293,9 @@ function app() {
     scripts: [],
     categories: [],
 
+    // Role
+    role: localStorage.getItem('hs_role') || 'tia',
+
     // Search / navigation
     query: '',
     activeTab: '全部',
@@ -328,6 +340,12 @@ function app() {
       }
     },
 
+    setRole(r) {
+      this.role = r;
+      this.activeTab = '全部';
+      localStorage.setItem('hs_role', r);
+    },
+
     toggleAI() {
       this.showAI = !this.showAI;
     },
@@ -337,11 +355,19 @@ function app() {
     },
 
     categoryCount(cat) {
-      return this.scripts.filter(s => s.category === cat).length;
+      return this.filteredByRole.filter(s => s.category === cat).length;
+    },
+
+    get filteredByRole() {
+      return this.scripts.filter(s => !s.roles || s.roles.includes(this.role));
+    },
+
+    get roleCategories() {
+      return [...new Set(this.filteredByRole.map(s => s.category))];
     },
 
     get displayList() {
-      let list = this.scripts;
+      let list = this.filteredByRole;
 
       if (this.query) {
         const q = this.query.toLowerCase();
@@ -481,7 +507,7 @@ function app() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('hs_pw') || 'TEAM2026'}`
           },
-          body: JSON.stringify({ message: this.aiInput })
+          body: JSON.stringify({ message: this.aiInput, role: this.role })
         });
         if (res.status === 401) {
           this.aiError = '密码验证失败，请退出重新登录';
