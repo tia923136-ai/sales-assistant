@@ -39,6 +39,11 @@
     /* Hide scrollbar on tab row */
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { scrollbar-width: none; }
+    /* Rendered markdown content */
+    .prose-sm table { border-collapse: collapse; }
+    .prose-sm table th { border-bottom: 2px solid #e5e7eb; }
+    .prose-sm hr { border-color: #e5e7eb; }
+    .prose-sm strong { color: #111827; }
   </style>
 </head>
 <body class="bg-gray-50 font-sans min-h-screen" x-data="app()" x-init="init()" x-cloak>
@@ -187,9 +192,9 @@
               <!-- 预览 -->
               <p x-show="expandedId !== item.id" class="text-sm text-gray-500 line-clamp-2 leading-relaxed" x-html="highlight(item.content)"></p>
 
-              <!-- 全文 -->
-              <div x-show="expandedId === item.id" @click.stop class="mt-1">
-                <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed" x-html="highlight(item.content)"></div>
+              <!-- 全文（Markdown 渲染） -->
+              <div x-show="expandedId === item.id" @click.stop class="mt-2">
+                <div class="text-sm text-gray-700 leading-relaxed prose-sm" x-html="highlight(item.content)"></div>
                 <div class="flex gap-2 mt-3 pt-2 border-t border-gray-100">
                   <button @click.stop="copyText(item.content, item.id)"
                     class="text-xs bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark transition">
@@ -356,14 +361,51 @@ function app() {
       return list.slice(0, 50);
     },
 
+    renderMd(text) {
+      if (!text) return '';
+      let html = text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      // Markdown 表格 → HTML table
+      html = html.replace(
+        /(?:^|\n)(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)+)/g,
+        (_, header, sep, body) => {
+          const ths = header.split('|').filter(c => c.trim()).map(c => `<th class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 bg-gray-50">${c.trim()}</th>`).join('');
+          const rows = body.trim().split('\n').map(row => {
+            const tds = row.split('|').filter(c => c.trim()).map(c => `<td class="px-2 py-1.5 text-sm text-gray-700 border-t border-gray-100">${c.trim()}</td>`).join('');
+            return `<tr>${tds}</tr>`;
+          }).join('');
+          return `<div class="overflow-x-auto my-2"><table class="w-full border border-gray-200 rounded text-sm"><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table></div>`;
+        }
+      );
+
+      // **加粗**
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
+      // 分隔线
+      html = html.replace(/\n---\n/g, '<hr class="my-3 border-gray-200">');
+      // 列表项 - / · / 1.
+      html = html.replace(/^([·\-•]\s?)(.+)$/gm, '<div class="flex gap-1.5 ml-1"><span class="text-gray-400 shrink-0">·</span><span>$2</span></div>');
+      html = html.replace(/^(\d+[.)]\s?)(.+)$/gm, '<div class="flex gap-1.5 ml-1"><span class="text-brand font-medium shrink-0">$1</span><span>$2</span></div>');
+      // ### 小标题
+      html = html.replace(/^###\s+(.+)$/gm, '<div class="font-semibold text-gray-900 mt-3 mb-1">$1</div>');
+      // 换行
+      html = html.replace(/\n/g, '<br>');
+      // 清理多余 br
+      html = html.replace(/<br>\s*<div/g, '<div');
+      html = html.replace(/<\/div>\s*<br>/g, '</div>');
+      html = html.replace(/<br>\s*<hr/g, '<hr');
+      html = html.replace(/hr>\s*<br>/g, 'hr>');
+
+      return html;
+    },
+
     highlight(text) {
       if (!text) return '';
-      // HTML 转义
-      const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      if (!this.query) return escaped;
-      // 转义正则特殊字符
+      let html = this.renderMd(text);
+      if (!this.query) return html;
       const q = this.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      return escaped.replace(new RegExp(q, 'gi'), m => `<mark class="hl">${m}</mark>`);
+      // 只高亮文本节点，跳过 HTML 标签
+      return html.replace(new RegExp(`(?<=>)([^<]*?)(${q})`, 'gi'), (_, pre, match) => `${pre}<mark class="hl">${match}</mark>`);
     },
 
     moveSelection(delta) {
