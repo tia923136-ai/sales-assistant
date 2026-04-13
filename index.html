@@ -125,7 +125,7 @@
         <textarea x-model="aiInput" rows="4" placeholder="粘贴客户的微信聊天记录..."
           class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"></textarea>
         <div class="flex justify-between items-center mt-2">
-          <span class="text-xs text-gray-400" x-text="aiInput.length + ' 字'"></span>
+          <span class="text-xs" :class="aiInput.length > 3000 ? 'text-red-500' : 'text-gray-400'" x-text="aiInput.length + ' 字' + (aiInput.length > 3000 ? '（建议精简，太长影响回复质量）' : '')"></span>
           <button @click="askAI()" :disabled="aiLoading || !aiInput.trim()"
             class="px-4 py-1.5 bg-brand text-white text-sm rounded-md hover:bg-brandDark disabled:opacity-40 disabled:cursor-not-allowed transition">
             <span x-show="!aiLoading">分析并生成回复</span>
@@ -147,8 +147,10 @@
         <p x-show="aiError" class="mt-2 text-sm text-red-500" x-text="aiError"></p>
       </div>
 
-      <!-- 分类 Tab（搜索时也显示，标记当前活跃分类） -->
-      <div class="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+      <!-- 分类 Tab -->
+      <div class="relative mb-3">
+      <div class="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none z-10"></div>
+      <div class="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
         <button @click="activeTab = '全部'; query = ''"
           class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border cursor-pointer"
           :class="activeTab === '全部' && !query ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'">
@@ -163,6 +165,7 @@
           </button>
         </template>
       </div>
+      </div>
 
       <!-- 搜索状态提示 -->
       <div x-show="query" class="mb-3 text-xs text-gray-500 flex items-center justify-between">
@@ -173,7 +176,7 @@
       <!-- 话术列表 -->
       <div class="space-y-2.5">
         <template x-for="(item, idx) in displayList" :key="item.id">
-          <div @click="toggleExpand(item.id)"
+          <div @click="toggleExpand(item.id)" data-script-card
             class="bg-white rounded-md border relative cursor-pointer transition"
             :class="idx === selectedIdx && query ? 'border-brand ring-2 ring-brand/20' : 'border-gray-100 hover:border-gray-300'">
             <!-- Featured 左侧细条 -->
@@ -254,6 +257,8 @@
       <!-- 底部信息 -->
       <div class="text-center text-xs text-gray-400 mt-8 pb-4">
         星芒AI进化岛 · 销售团队内部工具
+        <span class="mx-1">·</span>
+        <button @click="logout()" class="text-gray-400 hover:text-red-500 transition cursor-pointer">退出登录</button>
       </div>
     </div>
   </template>
@@ -415,10 +420,10 @@ function app() {
       const len = this.displayList.length;
       if (len === 0) return;
       this.selectedIdx = (this.selectedIdx + delta + len) % len;
-      // 滚动到视图
+      // 滚动到视图 — 只选话术卡片，跳过其他 x-html 元素
       this.$nextTick(() => {
-        const el = document.querySelectorAll('[x-html]')[this.selectedIdx];
-        el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        const cards = document.querySelectorAll('[data-script-card]');
+        cards[this.selectedIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       });
     },
 
@@ -449,6 +454,14 @@ function app() {
       localStorage.setItem('hs_recent', JSON.stringify(this.recentIds));
     },
 
+    logout() {
+      localStorage.removeItem('hs_auth');
+      localStorage.removeItem('hs_pw');
+      localStorage.removeItem('hs_recent');
+      this.authenticated = false;
+      this.scripts = [];
+    },
+
     showToast(msg) {
       this.toast = msg;
       setTimeout(() => this.toast = '', 2000);
@@ -471,7 +484,11 @@ function app() {
           body: JSON.stringify({ message: this.aiInput })
         });
         if (res.status === 401) {
-          this.aiError = '认证失败，请刷新页面重新登录';
+          this.aiError = '密码验证失败，请退出重新登录';
+          return;
+        }
+        if (res.status === 429) {
+          this.aiError = '请求太频繁，等1分钟再试';
           return;
         }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -487,10 +504,11 @@ function app() {
 
     formatAIResult(text) {
       if (!text) return '';
-      const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      return escaped
-        .replace(/\n/g, '<br>')
-        .replace(/(📊|💬|📌)/g, '<span class="text-base">$1</span>');
+      // 用 renderMd 渲染 Markdown（表格/加粗/列表）
+      let html = this.renderMd(text);
+      // AI 特有的 emoji 标记加样式
+      html = html.replace(/(📊|💬|📌|🔍)/g, '<span class="text-base inline-block mr-1">$1</span>');
+      return html;
     }
   }
 }
