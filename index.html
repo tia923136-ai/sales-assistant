@@ -84,24 +84,34 @@
 
   <!-- 主界面 -->
   <template x-if="authenticated">
-    <div class="max-w-7xl mx-auto px-6 py-4">
-      <!-- 顶部：logo + 搜索 -->
-      <div class="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-1 pb-3 -mx-6 px-6 border-b border-transparent" :class="{'border-gray-200/60': scrolled}" @scroll.window="scrolled = window.scrollY > 10">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="w-7 h-7 rounded-md bg-brand flex items-center justify-center">
+    <div class="max-w-[1440px] mx-auto px-6 py-4">
+      <!-- 顶部栏：logo + 身份 tab + 操作按钮（紧凑 inline） -->
+      <div class="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-1 pb-2 -mx-6 px-6 border-b border-transparent" :class="{'border-gray-200/60': scrolled}" @scroll.window="scrolled = window.scrollY > 10">
+        <div class="flex items-center gap-3">
+          <div class="w-7 h-7 rounded-md bg-brand flex items-center justify-center shrink-0">
             <span class="text-white font-bold text-sm">星</span>
           </div>
-          <h1 class="text-base font-bold text-gray-900 flex-1">话术助手</h1>
+          <h1 class="text-base font-bold text-gray-900 shrink-0">话术助手</h1>
+          <!-- 身份 tab（inline 紧凑版） -->
+          <div class="flex gap-0.5 bg-gray-100 rounded-md p-0.5 shrink-0">
+            <template x-for="r in [{id:'tia',label:'Tia 本人'},{id:'partner',label:'合伙人'},{id:'bd',label:'企业BD'}]" :key="r.id">
+              <button @click="setRole(r.id)"
+                class="text-xs px-3 py-1 rounded transition-all cursor-pointer"
+                :class="role === r.id ? 'bg-white text-gray-900 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'"
+                x-text="r.label"></button>
+            </template>
+          </div>
+          <div class="flex-1"></div>
           <!-- 新增话术按钮 -->
           <button @click="openCustomEditor()"
-            class="text-xs px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 transition flex items-center gap-1 cursor-pointer">
+            class="text-xs px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 transition flex items-center gap-1 cursor-pointer shrink-0">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
             </svg>
             新增
           </button>
           <button @click="toggleAI()"
-            class="text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1 cursor-pointer"
+            class="text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1 cursor-pointer shrink-0"
             :class="showAI ? 'bg-brand text-white' : 'text-gray-500 hover:text-gray-900'">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/>
@@ -109,41 +119,14 @@
             AI 智能回复
           </button>
         </div>
-        <!-- 角色选择器 -->
-        <div class="text-[11px] text-gray-400 mb-1 px-0.5">我的身份</div>
-        <div class="flex gap-1 mb-2.5 bg-gray-100 rounded-md p-0.5">
-          <template x-for="r in [{id:'tia',label:'Tia 本人'},{id:'partner',label:'合伙人'},{id:'bd',label:'企业BD'}]" :key="r.id">
-            <button @click="setRole(r.id)"
-              class="flex-1 text-xs py-1.5 rounded transition-all cursor-pointer text-center"
-              :class="role === r.id ? 'bg-white text-gray-900 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'"
-              x-text="r.label"></button>
-          </template>
-        </div>
-        <div class="relative">
-          <input type="text" x-model="query" x-ref="searchInput"
-            @input="selectedIdx = 0"
-            @keydown.down.prevent="moveSelection(1)"
-            @keydown.up.prevent="moveSelection(-1)"
-            @keydown.enter.prevent="copySelected()"
-            @keydown.escape="query = ''; selectedIdx = 0"
-            :placeholder="window.innerWidth < 640 ? '搜索话术（支持拼音如 jg）' : '搜索话术，支持拼音首字母如 jg = 价格'"
-            aria-label="搜索话术"
-            class="w-full border border-gray-200 rounded-md px-3 py-2.5 pl-9 text-[15px] bg-white focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
-          <svg class="absolute left-2.5 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <span x-show="query" @click="query = ''" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600 cursor-pointer text-sm">清除</span>
-        </div>
-        <p x-show="!query" class="text-[11px] text-gray-400 mt-1.5 px-0.5">
-          <span class="hidden sm:inline">上下选择 · Enter 复制 · Esc 清空 · </span>共 <span x-text="filteredByRole.length"></span> 条话术
-        </p>
       </div>
 
       <!-- 双栏工作台布局 -->
       <div class="grid grid-cols-[420px_1fr] gap-6 mt-4 items-start">
 
       <!-- 右栏：AI 智能回复（源码在左栏之前，用 order 置右） -->
-      <div class="order-2 min-w-0 max-h-[calc(100vh-180px)] overflow-y-auto">
+      <div class="order-2 min-w-0 max-h-[calc(100vh-100px)] overflow-y-auto">
+      <div class="max-w-2xl">
       <!-- AI 聊天面板 -->
       <div x-show="showAI" x-transition class="bg-white rounded-md border border-brand/30 p-4">
         <div class="flex items-start gap-2 mb-3">
@@ -237,11 +220,32 @@
         <p class="text-sm text-gray-400 mb-3">AI 智能回复已收起</p>
         <button @click="toggleAI()" class="text-xs bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark cursor-pointer">展开 AI 面板</button>
       </div>
+      </div><!-- /max-w-2xl -->
       </div>
       <!-- /右栏 -->
 
       <!-- 左栏：话术库 -->
-      <div class="order-1 min-w-0 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
+      <div class="order-1 min-w-0 max-h-[calc(100vh-100px)] overflow-y-auto pr-1">
+
+      <!-- 搜索框（左栏顶部） -->
+      <div class="relative mb-3">
+        <input type="text" x-model="query" x-ref="searchInput"
+          @input="selectedIdx = 0"
+          @keydown.down.prevent="moveSelection(1)"
+          @keydown.up.prevent="moveSelection(-1)"
+          @keydown.enter.prevent="copySelected()"
+          @keydown.escape="query = ''; selectedIdx = 0"
+          placeholder="搜索话术，支持拼音首字母如 jg = 价格"
+          aria-label="搜索话术"
+          class="w-full border border-gray-200 rounded-md px-3 py-2 pl-9 text-[14px] bg-white focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+        <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <span x-show="query" @click="query = ''" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 cursor-pointer text-xs">清除</span>
+      </div>
+      <p x-show="!query" class="text-[11px] text-gray-400 mb-2 px-0.5">
+        ↑↓ 选择 · Enter 复制 · 共 <span x-text="filteredByRole.length"></span> 条
+      </p>
 
       <!-- 分类 Tab -->
       <div class="relative mb-3">
