@@ -87,7 +87,7 @@
     <div class="max-w-[1440px] mx-auto px-6 py-4">
       <!-- 顶部栏：logo + 身份 tab + 操作按钮（紧凑 inline） -->
       <div class="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-1 pb-2 -mx-6 px-6 border-b border-transparent" :class="{'border-gray-200/60': scrolled}" @scroll.window="scrolled = window.scrollY > 10">
-        <div class="flex items-center gap-3">
+        <div :class="showAI ? 'flex items-center gap-3' : 'flex items-center gap-3 max-w-3xl mx-auto'">
           <div class="w-7 h-7 rounded-md bg-brand flex items-center justify-center shrink-0">
             <span class="text-white font-bold text-sm">星</span>
           </div>
