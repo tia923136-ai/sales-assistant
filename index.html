@@ -102,6 +102,24 @@
             </template>
           </div>
           <div class="flex-1"></div>
+          <!-- 合伙人资料（仅合伙人/BD 身份显示） -->
+          <button x-show="role !== 'tia' && onboardingScripts.length > 0" @click="showOnboardingDocs = true"
+            class="text-xs px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 transition flex items-center gap-1 cursor-pointer shrink-0"
+            title="合伙人资料（佣金/工具说明）">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+            </svg>
+            合伙人资料
+          </button>
+          <!-- 我的称谓设置 -->
+          <button @click="showOperatorSetting = true"
+            class="text-xs px-1.5 py-1 rounded-md text-gray-400 hover:text-gray-900 transition cursor-pointer shrink-0"
+            :title="'我的称谓：' + (effectiveOperator || '未设置')">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </button>
           <!-- 新增话术按钮 -->
           <button @click="openCustomEditor()"
             class="text-xs px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 transition flex items-center gap-1 cursor-pointer shrink-0">
@@ -327,11 +345,11 @@
               </div>
 
               <!-- 预览 -->
-              <p x-show="expandedId !== item.id" class="text-sm text-gray-500 line-clamp-2 leading-relaxed" x-text="item.content.replace(/[|#*\-]/g, ' ').replace(/\s+/g, ' ').substring(0, 160)"></p>
+              <p x-show="expandedId !== item.id" class="text-sm text-gray-500 line-clamp-2 leading-relaxed" x-text="renderContent(item.content).replace(/[|#*\-]/g, ' ').replace(/\s+/g, ' ').substring(0, 160)"></p>
 
               <!-- 全文 -->
               <div x-show="expandedId === item.id" @click.stop class="mt-2">
-                <div class="text-sm text-gray-700 leading-relaxed prose-sm" x-html="highlight(item.content)"></div>
+                <div class="text-sm text-gray-700 leading-relaxed prose-sm" x-html="highlight(renderContent(item.content))"></div>
                 <div class="flex flex-wrap gap-2 mt-3 pt-2 border-t border-gray-100">
                   <button @click.stop="copyText(item.content, item.id)"
                     class="text-xs bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark transition cursor-pointer">
@@ -490,6 +508,46 @@
     </div>
   </div>
 
+  <!-- 称谓设置弹窗 -->
+  <div x-show="showOperatorSetting" x-transition.opacity class="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4" @click.self="showOperatorSetting = false">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5" @click.stop>
+      <h2 class="text-base font-bold text-gray-900 mb-1">我的称谓</h2>
+      <p class="text-xs text-gray-500 mb-4">话术里出现 <code class="bg-gray-100 px-1 rounded text-[11px]">&#123;&#123;operator&#125;&#125;</code> 会自动替换成这里填的名字</p>
+      <input type="text" x-model="operatorName" placeholder="比如：小明 / Tia / 李姐"
+        @keydown.enter="saveOperatorName()"
+        class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-brand">
+      <p class="text-[11px] text-gray-400 mb-4">
+        留空则使用默认：Tia 身份自动显示 Tia，其他身份显示 "[你的名字]"
+      </p>
+      <div class="flex justify-end gap-2">
+        <button @click="showOperatorSetting = false" class="text-sm text-gray-500 hover:text-gray-900 px-4 py-2 cursor-pointer">取消</button>
+        <button @click="saveOperatorName()" class="text-sm bg-brand text-white px-4 py-2 rounded-md hover:bg-brandDark cursor-pointer">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 合伙人资料弹窗 -->
+  <div x-show="showOnboardingDocs" x-transition.opacity class="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4" @click.self="showOnboardingDocs = false">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-5 max-h-[85vh] overflow-y-auto" @click.stop>
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h2 class="text-base font-bold text-gray-900">合伙人资料</h2>
+          <p class="text-xs text-gray-500 mt-1">给新合伙人的一次性材料：欢迎、佣金结构、工具说明。日常话术库里不再出现。</p>
+        </div>
+        <button @click="showOnboardingDocs = false" class="text-gray-400 hover:text-gray-600 text-sm cursor-pointer">关闭</button>
+      </div>
+      <div class="space-y-3">
+        <template x-for="s in onboardingScripts" :key="s.id">
+          <div class="bg-gray-50 rounded-md p-3 border border-gray-100">
+            <h3 class="text-sm font-medium text-gray-900 mb-2" x-text="s.title"></h3>
+            <div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap" x-text="renderContent(s.content)"></div>
+            <button @click="copyText(s.content)" class="text-xs text-brand hover:underline mt-2 cursor-pointer">复制</button>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div x-show="toast" x-transition
     class="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-md text-sm shadow-lg toast-enter z-50 flex items-center gap-2">
@@ -533,6 +591,10 @@ function app() {
 
     // Role
     role: localStorage.getItem('hs_role') || 'tia',
+    // 称谓（话术里 {{operator}} 会替换成这个）
+    operatorName: localStorage.getItem('hs_operator_name') || '',
+    showOperatorSetting: false,
+    showOnboardingDocs: false,
 
     // Search / navigation
     query: '',
@@ -587,7 +649,30 @@ function app() {
     },
 
     get filteredByRole() {
-      return this.allScripts.filter(s => !s.roles || s.roles.includes(this.role) || s._custom);
+      return this.allScripts.filter(s => !s._onboarding && (!s.roles || s.roles.includes(this.role) || s._custom));
+    },
+
+    get onboardingScripts() {
+      return this.allScripts.filter(s => s._onboarding);
+    },
+
+    get effectiveOperator() {
+      // 默认跟身份走：Tia 身份 → 'Tia'；其他身份未设置 → '[你的名字]'
+      if (this.operatorName) return this.operatorName;
+      if (this.role === 'tia') return 'Tia';
+      return '';
+    },
+
+    renderContent(text) {
+      if (!text) return text;
+      const op = this.effectiveOperator || '[你的名字]';
+      return text.replace(/\{\{operator\}\}/g, op);
+    },
+
+    saveOperatorName() {
+      localStorage.setItem('hs_operator_name', this.operatorName.trim());
+      this.showOperatorSetting = false;
+      this.showToast(this.operatorName.trim() ? '称谓已保存' : '已清除称谓');
     },
 
     get roleCategories() {
@@ -909,13 +994,22 @@ function app() {
     },
 
     async copyText(text, id) {
+      // 首次遇到 {{operator}} 占位且非 Tia 身份未设称谓 → 提示先设置
+      if (text && text.includes('{{operator}}') && this.role !== 'tia' && !this.operatorName
+          && !localStorage.getItem('hs_operator_prompted')) {
+        localStorage.setItem('hs_operator_prompted', '1');
+        this.showOperatorSetting = true;
+        this.showToast('话术里有称谓占位，先设一下你的名字');
+        return;
+      }
+      const rendered = this.renderContent(text);
       try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(rendered);
         this.showToast('已复制，去微信粘贴吧');
         if (id) this.trackUsage(id);
       } catch {
         const ta = document.createElement('textarea');
-        ta.value = text;
+        ta.value = rendered;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');

@@ -4,7 +4,7 @@
     "category": "快捷话术",
     "tags": [],
     "title": "【快捷】你好",
-    "content": "Hi你好，我是Tia",
+    "content": "Hi你好，我是{{operator}}",
     "featured": true,
     "espanso_trigger": "；你好",
     "roles": [
@@ -138,8 +138,7 @@
     "featured": true,
     "espanso_trigger": "；自媒体",
     "roles": [
-      "tia",
-      "partner"
+      "tia"
     ]
   },
   {
@@ -638,7 +637,7 @@
       "公众号"
     ],
     "title": "场景1：新加好友-主动来的",
-    "content": "触发：对方通过短视频/公众号主动加微信\n\n第1条：你好呀，我是Tia\n第2条：请问你现在是遇到了具体问题想解决（比如用AI做内容创作、提效、做副业），还是想系统学习怎么用AI搭建一套自己的业务流？\n\n跟进：参照「初聊承接SOP」处理 / 不回→3天后场景6\n\n---",
+    "content": "触发：对方通过短视频/公众号主动加微信\n\n第1条：你好呀，我是{{operator}}\n第2条：请问你现在是遇到了具体问题想解决（比如用AI做内容创作、提效、做副业），还是想系统学习怎么用AI搭建一套自己的业务流？\n\n跟进：参照「初聊承接SOP」处理 / 不回→3天后场景6\n\n---",
     "featured": false,
     "espanso_trigger": null,
     "roles": [
@@ -752,8 +751,7 @@
     "featured": false,
     "espanso_trigger": null,
     "roles": [
-      "tia",
-      "partner"
+      "tia"
     ]
   },
   {
@@ -816,7 +814,7 @@
       "试读"
     ],
     "title": "场景6：沉默用户激活",
-    "content": "触发：3天以上没回复。选一个发，不连发。\n\n**版本A-价值分享型：**\n分享一个AI小技巧：\n[具体可马上用的技巧]\n这是知识库里的一个片段，完整版还有更多\n感兴趣的话我官网上有试读：starglowai.com\n\n**版本B-话题型：**\n最近[AI热点事件]你关注了吗？\n我刚发了篇分析，角度挺独特的\n我之前做投资的，看这类事件的角度跟大多数博主不太一样\n要不要我把链接发你？\n\n**版本C-直接型（加好友超2周无互动）：**\n嗨，加好友挺久了一直没聊过\n我是Tia，做AI实操知识库和社群的\n朋友圈会分享AI实践心得\n不需要也没关系，有问题随时找我\n\n---",
+    "content": "触发：3天以上没回复。选一个发，不连发。\n\n**版本A-价值分享型：**\n分享一个AI小技巧：\n[具体可马上用的技巧]\n这是知识库里的一个片段，完整版还有更多\n感兴趣的话我官网上有试读：starglowai.com\n\n**版本B-话题型：**\n最近[AI热点事件]你关注了吗？\n我刚发了篇分析，角度挺独特的\n我之前做投资的，看这类事件的角度跟大多数博主不太一样\n要不要我把链接发你？\n\n**版本C-直接型（加好友超2周无互动）：**\n嗨，加好友挺久了一直没聊过\n我是{{operator}}，做AI实操知识库和社群的\n朋友圈会分享AI实践心得\n不需要也没关系，有问题随时找我\n\n---",
     "featured": false,
     "espanso_trigger": null,
     "roles": [
@@ -1081,7 +1079,7 @@
       "公众号"
     ],
     "title": "Q1：刚通过好友，第一句发什么？",
-    "content": "你好呀～我是Tia\n看到你是从[视频号/小红书/公众号]过来的，欢迎欢迎\n方便问一下，你是想解决具体问题（比如做内容、提效、搞副业），还是想系统学一遍怎么用AI？\n我先给你推荐几篇最匹配的免费文章",
+    "content": "你好呀～我是{{operator}}\n看到你是从[视频号/小红书/公众号]过来的，欢迎欢迎\n方便问一下，你是想解决具体问题（比如做内容、提效、搞副业），还是想系统学一遍怎么用AI？\n我先给你推荐几篇最匹配的免费文章",
     "featured": false,
     "espanso_trigger": null,
     "roles": [
@@ -1212,9 +1210,7 @@
     "featured": false,
     "espanso_trigger": null,
     "roles": [
-      "tia",
-      "partner",
-      "bd"
+      "tia"
     ]
   },
   {
@@ -1243,9 +1239,7 @@
     "featured": false,
     "espanso_trigger": null,
     "roles": [
-      "tia",
-      "partner",
-      "bd"
+      "tia"
     ]
   },
   {
@@ -1268,9 +1262,7 @@
     "featured": false,
     "espanso_trigger": null,
     "roles": [
-      "tia",
-      "partner",
-      "bd"
+      "tia"
     ]
   },
   {
@@ -2939,7 +2931,8 @@
     "roles": [
       "partner",
       "bd"
-    ]
+    ],
+    "_onboarding": true
   },
   {
     "id": "P2-佣金结构说明-创作者",
@@ -2973,7 +2966,8 @@
     "roles": [
       "partner",
       "bd"
-    ]
+    ],
+    "_onboarding": true
   },
   {
     "id": "P3-佣金结构说明-私域运营",
@@ -2997,7 +2991,8 @@
     "roles": [
       "partner",
       "bd"
-    ]
+    ],
+    "_onboarding": true
   },
   {
     "id": "P4-佣金结构说明-独立销售",
@@ -3033,7 +3028,8 @@
     "roles": [
       "partner",
       "bd"
-    ]
+    ],
+    "_onboarding": true
   },
   {
     "id": "P5-话术助手使用说明",
@@ -3072,7 +3068,8 @@
     "roles": [
       "partner",
       "bd"
-    ]
+    ],
+    "_onboarding": true
   },
   {
     "id": "P6-创作者合伙人-初次对接客户",
