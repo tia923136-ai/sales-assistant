@@ -121,11 +121,11 @@
         </div>
       </div>
 
-      <!-- 双栏工作台布局 -->
-      <div class="grid grid-cols-[420px_1fr] gap-6 mt-4 items-start">
+      <!-- 自适应工作台布局：AI 展开时双栏，AI 收起时单列居中 -->
+      <div :class="showAI ? 'grid grid-cols-[420px_1fr] gap-6 mt-4 items-start' : 'max-w-3xl mx-auto mt-4'">
 
-      <!-- 右栏：AI 智能回复（源码在左栏之前，用 order 置右） -->
-      <div class="order-2 min-w-0 max-h-[calc(100vh-100px)] overflow-y-auto">
+      <!-- 右栏：AI 智能回复（仅 showAI 时显示） -->
+      <div x-show="showAI" class="order-2 min-w-0 max-h-[calc(100vh-100px)] overflow-y-auto">
       <div class="max-w-2xl">
       <!-- AI 聊天面板 -->
       <div x-show="showAI" x-transition class="bg-white rounded-md border border-brand/30 p-4">
@@ -215,17 +215,12 @@
         </div>
         <p x-show="aiError" class="mt-2 text-sm text-red-500" x-text="aiError"></p>
       </div>
-      <!-- AI 未开启占位 -->
-      <div x-show="!showAI" class="bg-white/60 rounded-md border border-dashed border-gray-200 p-8 text-center">
-        <p class="text-sm text-gray-400 mb-3">AI 智能回复已收起</p>
-        <button @click="toggleAI()" class="text-xs bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark cursor-pointer">展开 AI 面板</button>
-      </div>
       </div><!-- /max-w-2xl -->
       </div>
       <!-- /右栏 -->
 
-      <!-- 左栏：话术库 -->
-      <div class="order-1 min-w-0 max-h-[calc(100vh-100px)] overflow-y-auto pr-1">
+      <!-- 左栏（AI展开时）/ 主列（AI收起时）：话术库 -->
+      <div :class="showAI ? 'order-1 min-w-0 max-h-[calc(100vh-100px)] overflow-y-auto pr-1' : 'min-w-0'">
 
       <!-- 搜索框（左栏顶部） -->
       <div class="relative mb-3">
