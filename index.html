@@ -84,9 +84,9 @@
 
   <!-- 主界面 -->
   <template x-if="authenticated">
-    <div class="max-w-2xl mx-auto px-4 py-4">
+    <div class="max-w-7xl mx-auto px-6 py-4">
       <!-- 顶部：logo + 搜索 -->
-      <div class="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-1 pb-3 -mx-4 px-4 border-b border-transparent" :class="{'border-gray-200/60': scrolled}" @scroll.window="scrolled = window.scrollY > 10">
+      <div class="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-1 pb-3 -mx-6 px-6 border-b border-transparent" :class="{'border-gray-200/60': scrolled}" @scroll.window="scrolled = window.scrollY > 10">
         <div class="flex items-center gap-2 mb-3">
           <div class="w-7 h-7 rounded-md bg-brand flex items-center justify-center">
             <span class="text-white font-bold text-sm">星</span>
@@ -139,8 +139,13 @@
         </p>
       </div>
 
+      <!-- 双栏工作台布局 -->
+      <div class="grid grid-cols-[420px_1fr] gap-6 mt-4 items-start">
+
+      <!-- 右栏：AI 智能回复（源码在左栏之前，用 order 置右） -->
+      <div class="order-2 min-w-0 max-h-[calc(100vh-180px)] overflow-y-auto">
       <!-- AI 聊天面板 -->
-      <div x-show="showAI" x-transition class="mb-4 bg-white rounded-md border border-brand/30 p-4">
+      <div x-show="showAI" x-transition class="bg-white rounded-md border border-brand/30 p-4">
         <div class="flex items-start gap-2 mb-3">
           <div class="flex-1">
             <h2 class="text-sm font-semibold text-gray-900">AI 智能回复</h2>
@@ -227,6 +232,16 @@
         </div>
         <p x-show="aiError" class="mt-2 text-sm text-red-500" x-text="aiError"></p>
       </div>
+      <!-- AI 未开启占位 -->
+      <div x-show="!showAI" class="bg-white/60 rounded-md border border-dashed border-gray-200 p-8 text-center">
+        <p class="text-sm text-gray-400 mb-3">AI 智能回复已收起</p>
+        <button @click="toggleAI()" class="text-xs bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark cursor-pointer">展开 AI 面板</button>
+      </div>
+      </div>
+      <!-- /右栏 -->
+
+      <!-- 左栏：话术库 -->
+      <div class="order-1 min-w-0 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
 
       <!-- 分类 Tab -->
       <div class="relative mb-3">
@@ -413,6 +428,12 @@
           </div>
         </template>
       </div>
+
+      </div>
+      <!-- /左栏 -->
+
+      </div>
+      <!-- /双栏 -->
 
       <!-- 底部信息 -->
       <div class="text-center text-xs text-gray-400 mt-8 pb-4">
