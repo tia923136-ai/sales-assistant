@@ -316,15 +316,15 @@
                     class="text-xs bg-brand text-white px-3 py-1.5 rounded hover:bg-brandDark transition cursor-pointer">
                     复制全文
                   </button>
-                  <!-- 自定义话术的编辑/删除按钮 -->
-                  <template x-if="item._custom">
-                    <div class="flex gap-2">
-                      <button @click.stop="openCustomEditor(item)"
-                        class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer">编辑</button>
-                      <button @click.stop="deleteCustomScript(item.id)"
-                        class="text-xs text-red-400 hover:text-red-600 cursor-pointer">删除</button>
-                    </div>
-                  </template>
+                  <!-- 编辑按钮（所有话术） -->
+                  <button @click.stop="openScriptEditor(item)"
+                    class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer">编辑</button>
+                  <!-- 自定义话术的删除按钮 -->
+                  <button x-show="item._custom" @click.stop="deleteCustomScript(item.id)"
+                    class="text-xs text-red-400 hover:text-red-600 cursor-pointer">删除</button>
+                  <!-- 已修改的官方话术：恢复原版 -->
+                  <button x-show="item._overridden" @click.stop="restoreOriginal(item.id)"
+                    class="text-xs text-blue-500 hover:text-blue-700 cursor-pointer">恢复原版</button>
                   <button @click.stop="expandedId = null" class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer">
                     收起
                   </button>
@@ -354,6 +354,7 @@
               <div class="flex items-center gap-2 mt-2 text-[11px]">
                 <span class="text-gray-400" x-text="item.category"></span>
                 <span x-show="item._custom" class="text-emerald-500 font-medium">自定义</span>
+                <span x-show="item._overridden" class="text-blue-500 font-medium">已修改</span>
                 <span x-show="item.espanso_trigger" class="text-gray-300">·</span>
                 <span x-show="item.espanso_trigger" class="text-gray-400 font-mono" x-text="item.espanso_trigger"></span>
                 <span x-show="item.featured" class="text-gray-300">·</span>
@@ -428,7 +429,7 @@
   <!-- 自定义话术编辑弹窗 -->
   <div x-show="showEditor" x-transition.opacity class="fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4" @click.self="showEditor = false">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-5" @click.stop>
-      <h2 class="text-base font-bold text-gray-900 mb-4" x-text="editingScript ? '编辑话术' : '新增话术'"></h2>
+      <h2 class="text-base font-bold text-gray-900 mb-4" x-text="editingScript ? (editorForm._isOfficial ? '修改话术' : '编辑话术') : '新增话术'"></h2>
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">标题</label>
@@ -440,7 +441,7 @@
           <textarea x-model="editorForm.content" rows="6" placeholder="实际发给客户的文字..."
             class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"></textarea>
         </div>
-        <div>
+        <div x-show="!editorForm._isOfficial">
           <label class="block text-xs font-medium text-gray-600 mb-1">分类</label>
           <select x-model="editorForm.category"
             class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand bg-white">
@@ -450,6 +451,7 @@
             <option value="自定义">自定义</option>
           </select>
         </div>
+        <p x-show="editorForm._isOfficial" class="text-xs text-gray-400">修改后可随时点「恢复原版」还原</p>
       </div>
       <div class="flex justify-end gap-2 mt-5">
         <button @click="showEditor = false" class="text-sm text-gray-500 hover:text-gray-900 px-4 py-2 cursor-pointer">取消</button>
@@ -497,7 +499,8 @@ function app() {
     loginError: '',
 
     // Data
-    scripts: [],         // 官方话术
+    scripts: [],         // 官方话术（原始数据）
+    scriptOverrides: JSON.parse(localStorage.getItem('hs_overrides') || '{}'),  // 官方话术的修改覆盖
     customScripts: JSON.parse(localStorage.getItem('hs_custom') || '[]'),
     categories: [],
 
@@ -546,8 +549,14 @@ function app() {
     _pinyinCache: {},
 
     get allScripts() {
+      // 应用覆盖：如果官方话术被编辑过，用覆盖版本替换
+      const merged = this.scripts.map(s => {
+        const ov = this.scriptOverrides[s.id];
+        if (ov) return { ...s, title: ov.title, content: ov.content, _overridden: true };
+        return s;
+      });
       const custom = this.customScripts.map(s => ({ ...s, _custom: true }));
-      return [...this.scripts, ...custom];
+      return [...merged, ...custom];
     },
 
     get filteredByRole() {
@@ -698,6 +707,30 @@ function app() {
       localStorage.setItem('hs_favorites', JSON.stringify([...this.favorites]));
     },
 
+    // ---- 话术编辑（统一入口） ----
+    openScriptEditor(item) {
+      if (item._custom) {
+        this.openCustomEditor(item);
+      } else {
+        // 编辑官方话术 → 用覆盖机制
+        this.editingScript = item;
+        this.editorForm = {
+          title: item.title,
+          content: item.content,
+          category: item.category,
+          _isOfficial: true,  // 标记为官方话术编辑
+        };
+        this.showEditor = true;
+      }
+    },
+
+    restoreOriginal(id) {
+      if (!confirm('恢复为原始话术？你的修改会丢失')) return;
+      delete this.scriptOverrides[id];
+      localStorage.setItem('hs_overrides', JSON.stringify(this.scriptOverrides));
+      this.showToast('已恢复原版');
+    },
+
     // ---- 自定义话术 CRUD ----
     openCustomEditor(item, prefillTitle) {
       this.editingScript = item || null;
@@ -713,8 +746,21 @@ function app() {
       const form = this.editorForm;
       if (!form.title.trim() || !form.content.trim()) return;
 
+      // 官方话术编辑 → 保存为覆盖
+      if (form._isOfficial && this.editingScript) {
+        this.scriptOverrides[this.editingScript.id] = {
+          title: form.title.trim(),
+          content: form.content.trim(),
+          updatedAt: Date.now(),
+        };
+        localStorage.setItem('hs_overrides', JSON.stringify(this.scriptOverrides));
+        this.showEditor = false;
+        this.showToast('话术已更新');
+        return;
+      }
+
       if (this.editingScript) {
-        // 编辑已有
+        // 编辑已有自定义话术
         const idx = this.customScripts.findIndex(s => s.id === this.editingScript.id);
         if (idx !== -1) {
           this.customScripts[idx] = {
