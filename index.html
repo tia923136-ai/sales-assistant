@@ -214,6 +214,13 @@
           </div>
         </div>
         <p x-show="aiError" class="mt-2 text-sm text-red-500" x-text="aiError"></p>
+        <!-- 空状态使用提示（无输入、无结果、非加载中时显示） -->
+        <div x-show="aiMessages.length === 0 && !aiResult && !aiLoading && !aiError" class="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500 leading-relaxed space-y-1.5">
+          <p class="text-gray-700 font-medium mb-1">怎么用</p>
+          <p>· 复制客户微信聊天截图后，<span class="font-mono text-gray-700">Ctrl+V</span> 直接粘贴到输入框，AI 会判断客户温度并生成 3 条不同策略的回复</p>
+          <p>· 文字对话也可以，复制粘贴即可；多轮追问可以持续粘贴</p>
+          <p>· 生成后每条话术可以直接在卡片里编辑再复制</p>
+        </div>
       </div>
       </div><!-- /max-w-2xl -->
       </div>
