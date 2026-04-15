@@ -302,17 +302,203 @@
             <span class="opacity-60" x-text="categoryCount(cat)"></span>
           </button>
         </template>
+        <!-- 优化建议 Tab -->
+        <button @click="activeTab = '优化建议'; query = ''; loadOptimizations()"
+          class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border cursor-pointer"
+          :class="activeTab === '优化建议' && !query ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-600 border-purple-200 hover:border-purple-400'">
+          💡 优化建议
+          <span x-show="optimizations && optimizations.proposals" class="opacity-60" x-text="(optimizations.proposals || []).filter(p => p.status === 'pending').length"></span>
+        </button>
       </div>
       </div>
 
+      <!-- 优化建议面板 -->
+      <div x-show="activeTab === '优化建议'" class="space-y-3">
+        <!-- 加载中 -->
+        <div x-show="optimizationsLoading" class="bg-white rounded-md border border-gray-100 p-6 text-center text-sm text-gray-500">
+          正在加载优化建议...
+        </div>
+        <!-- 文件不存在 -->
+        <div x-show="!optimizationsLoading && optimizationsLoadError" class="bg-white rounded-md border border-amber-200 p-5 text-sm">
+          <p class="font-medium text-gray-900 mb-1">还没有优化建议</p>
+          <p class="text-gray-500 text-xs leading-relaxed">
+            优化建议由本地 <code class="bg-gray-100 px-1 rounded font-mono">optimize_scripts.py</code> 基于最近的微信聊天生成，
+            推到仓库后才会出现在这里。
+          </p>
+          <button @click="loadOptimizations()" class="mt-3 text-xs text-purple-600 hover:underline cursor-pointer">重试加载</button>
+        </div>
+
+        <template x-if="!optimizationsLoading && !optimizationsLoadError && optimizations">
+          <div class="space-y-3">
+            <!-- 账号 banner -->
+            <div class="rounded-md border p-3"
+              :class="{
+                'bg-emerald-50 border-emerald-200': optimizations.analyzed_account?.type === 'business',
+                'bg-amber-50 border-amber-200': optimizations.analyzed_account?.type === 'unknown' || !optimizations.analyzed_account,
+                'bg-red-50 border-red-300': optimizations.analyzed_account?.type === 'personal'
+              }">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-medium"
+                      :class="{
+                        'text-emerald-700': optimizations.analyzed_account?.type === 'business',
+                        'text-amber-700': optimizations.analyzed_account?.type === 'unknown' || !optimizations.analyzed_account,
+                        'text-red-700': optimizations.analyzed_account?.type === 'personal'
+                      }"
+                      x-text="accountBadgeText()"></span>
+                    <span class="text-xs text-gray-600" x-show="optimizations.analyzed_account?.nickname">
+                      昵称：<span x-text="optimizations.analyzed_account.nickname"></span>
+                    </span>
+                    <span class="text-xs text-gray-500 font-mono" x-show="optimizations.analyzed_account?.wxid"
+                      x-text="optimizations.analyzed_account.wxid"></span>
+                  </div>
+                  <div class="text-[11px] text-gray-500 mt-1">
+                    生成于 <span x-text="formatDate(optimizations.generated_at)"></span>
+                    <span x-show="optimizations.window_days"> · 最近 <span x-text="optimizations.window_days"></span> 天</span>
+                    <span x-show="optimizations.sample_size"> · 样本 <span x-text="optimizations.sample_size"></span> 条聊天</span>
+                  </div>
+                </div>
+                <!-- PAT 设置 -->
+                <div class="shrink-0 flex items-center gap-2">
+                  <button x-show="!ghPat" @click="promptPat()"
+                    class="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer">
+                    设置 PAT
+                  </button>
+                  <button x-show="ghPat" @click="clearPat()"
+                    class="text-[11px] text-gray-500 hover:text-red-600 cursor-pointer"
+                    title="清除保存的 GitHub Token">
+                    清除 PAT
+                  </button>
+                </div>
+              </div>
+              <p x-show="optimizations.analyzed_account?.type === 'personal'"
+                class="mt-2 text-xs text-red-700 font-medium">
+                🔒 该提案基于私人微信生成，已锁定所有采纳操作。请登录业务微信后重新运行分析。
+              </p>
+              <p x-show="optimizations.analyzed_account?.type === 'unknown' || !optimizations.analyzed_account"
+                class="mt-2 text-[11px] text-amber-700">
+                未识别账号类型，采纳前请确认数据来自业务微信。
+              </p>
+            </div>
+
+            <!-- Pending 提案 -->
+            <template x-if="pendingProposals().length > 0">
+              <div class="space-y-3">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  待审核 (<span x-text="pendingProposals().length"></span>)
+                </h3>
+                <template x-for="p in pendingProposals()" :key="p.id">
+                  <div class="bg-white rounded-md border border-gray-200 p-4">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap mb-1">
+                          <span class="text-[11px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded" x-text="p.script_id"></span>
+                          <span class="text-[11px] px-1.5 py-0.5 rounded font-medium"
+                            :class="{
+                              'bg-red-100 text-red-700': p.confidence === 'high' || p.confidence === '高',
+                              'bg-amber-100 text-amber-700': p.confidence === 'medium' || p.confidence === '中',
+                              'bg-gray-100 text-gray-600': p.confidence === 'low' || p.confidence === '低'
+                            }"
+                            x-text="'置信度：' + confidenceLabel(p.confidence)"></span>
+                        </div>
+                        <p class="text-sm text-gray-900 font-medium leading-snug" x-text="p.diagnosis"></p>
+                      </div>
+                    </div>
+
+                    <!-- old / new 对比 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+                      <div class="bg-red-50 border border-red-100 rounded p-2">
+                        <div class="text-[10px] font-medium text-red-600 mb-1">原话术</div>
+                        <div class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed" x-text="p.old_content"></div>
+                      </div>
+                      <div class="bg-emerald-50 border border-emerald-100 rounded p-2">
+                        <div class="text-[10px] font-medium text-emerald-600 mb-1">建议新话术</div>
+                        <div x-show="editingProposal !== p.id" class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed" x-text="p.new_content"></div>
+                        <textarea x-show="editingProposal === p.id" x-model="p.new_content" rows="5"
+                          class="w-full border border-emerald-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"></textarea>
+                      </div>
+                    </div>
+
+                    <!-- 证据折叠 -->
+                    <div x-show="p.evidence && p.evidence.length > 0" class="mt-3">
+                      <button @click="toggleEvidence(p.id)"
+                        class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer flex items-center gap-1">
+                        <svg class="w-3 h-3 transition-transform" :class="expandedEvidence === p.id ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                        </svg>
+                        证据片段（<span x-text="(p.evidence || []).length"></span>）
+                      </button>
+                      <div x-show="expandedEvidence === p.id" x-transition class="mt-2 space-y-1.5">
+                        <template x-for="(ev, evIdx) in (p.evidence || [])" :key="evIdx">
+                          <div class="bg-gray-50 rounded border border-gray-200 p-2 text-xs">
+                            <div class="whitespace-pre-wrap text-gray-700" x-text="ev.chat || ev.snippet || JSON.stringify(ev)"></div>
+                            <div x-show="ev.outcome" class="text-[10px] text-gray-500 mt-1">结果：<span x-text="ev.outcome"></span></div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+
+                    <!-- 按钮 -->
+                    <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <button @click="acceptProposal(p)"
+                        :disabled="isLocked() || ghBusy"
+                        class="text-xs bg-emerald-500 text-white px-3 py-1.5 rounded hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer">
+                        ✅ 采纳
+                      </button>
+                      <button @click="ignoreProposal(p)"
+                        :disabled="ghBusy"
+                        class="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-300 disabled:opacity-40 transition cursor-pointer">
+                        ❌ 忽略
+                      </button>
+                      <button @click="editingProposal = (editingProposal === p.id ? null : p.id)"
+                        class="text-xs bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
+                        <span x-text="editingProposal === p.id ? '完成编辑' : '✏️ 再改'"></span>
+                      </button>
+                      <span x-show="isLocked()" class="text-[11px] text-red-600 self-center">私人微信已锁定</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <!-- 空状态 -->
+            <div x-show="pendingProposals().length === 0 && historyProposals().length === 0"
+              class="bg-white rounded-md border border-gray-100 p-6 text-center text-sm text-gray-500">
+              暂无优化提案
+            </div>
+
+            <!-- 历史 -->
+            <template x-if="historyProposals().length > 0">
+              <div class="space-y-2 pt-4 border-t border-gray-200">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  历史 (<span x-text="historyProposals().length"></span>)
+                </h3>
+                <template x-for="p in historyProposals()" :key="p.id">
+                  <div class="bg-gray-50 rounded-md border border-gray-100 p-3">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                        :class="p.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'"
+                        x-text="p.status === 'accepted' ? '已采纳' : '已忽略'"></span>
+                      <span class="text-[11px] font-mono text-gray-500" x-text="p.script_id"></span>
+                      <span class="text-xs text-gray-700 flex-1 min-w-0 truncate" x-text="p.diagnosis"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+
       <!-- 搜索状态提示 -->
-      <div x-show="query" class="mb-3 text-xs text-gray-500 flex items-center justify-between">
+      <div x-show="activeTab !== '优化建议' && query" class="mb-3 text-xs text-gray-500 flex items-center justify-between">
         <span>搜索 "<span class="text-gray-900 font-medium" x-text="query"></span>" 找到 <span x-text="displayList.length"></span> 条</span>
         <button @click="query = ''" class="text-brand hover:underline cursor-pointer">返回分类浏览</button>
       </div>
 
       <!-- 话术列表 -->
-      <div class="space-y-2.5">
+      <div x-show="activeTab !== '优化建议'" class="space-y-2.5">
         <template x-for="(item, idx) in displayList" :key="item.id">
           <div @click="toggleExpand(item.id)" data-script-card
             class="bg-white rounded-md border relative cursor-pointer transition"
@@ -424,7 +610,7 @@
         </div>
 
         <!-- 空状态：分类下无数据 -->
-        <div x-show="displayList.length === 0 && allScripts.length > 0 && !query" class="text-center py-12">
+        <div x-show="activeTab !== '优化建议' && displayList.length === 0 && allScripts.length > 0 && !query" class="text-center py-12">
           <p class="text-gray-400 text-sm">这个分类暂时没有话术</p>
           <button x-show="activeTab === '收藏'" @click="activeTab = '全部'"
             class="text-brand text-sm mt-2 hover:underline cursor-pointer">浏览全部话术去收藏</button>
@@ -633,6 +819,18 @@ function app() {
     updateAvailable: false,
     loadError: false,
     API_BASE: 'https://sales-assistant-api.zeabur.app',
+
+    // 优化建议
+    optimizations: null,
+    optimizationsLoading: false,
+    optimizationsLoadError: false,
+    ghPat: localStorage.getItem('sales_assistant_gh_pat') || '',
+    editingProposal: null,
+    expandedEvidence: null,
+    ghBusy: false,
+    GH_OWNER: 'tia923136-ai',
+    GH_REPO: 'sales-assistant',
+    GH_BRANCH: 'main',
 
     // 拼音缓存
     _pinyinCache: {},
@@ -1227,7 +1425,269 @@ function app() {
       let html = this.renderMd(text);
       html = html.replace(/(📊|💬|📌|🔍)/g, '<span class="text-base inline-block mr-1">$1</span>');
       return html;
-    }
+    },
+
+    // ==================== 优化建议 ====================
+    async loadOptimizations() {
+      this.optimizationsLoading = true;
+      this.optimizationsLoadError = false;
+      try {
+        const res = await fetch('./script-optimizations.json?v=' + Date.now());
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        this.optimizations = await res.json();
+      } catch (e) {
+        console.warn('优化建议加载失败:', e);
+        this.optimizations = null;
+        this.optimizationsLoadError = true;
+      } finally {
+        this.optimizationsLoading = false;
+      }
+    },
+
+    pendingProposals() {
+      if (!this.optimizations || !this.optimizations.proposals) return [];
+      return this.optimizations.proposals.filter(p => !p.status || p.status === 'pending');
+    },
+
+    historyProposals() {
+      if (!this.optimizations || !this.optimizations.proposals) return [];
+      return this.optimizations.proposals.filter(p => p.status === 'accepted' || p.status === 'ignored');
+    },
+
+    isLocked() {
+      return this.optimizations?.analyzed_account?.type === 'personal';
+    },
+
+    accountBadgeText() {
+      const t = this.optimizations?.analyzed_account?.type;
+      if (t === 'business') return '✓ 业务微信';
+      if (t === 'personal') return '⚠ 私人微信（已锁定）';
+      return '? 未知账号类型';
+    },
+
+    confidenceLabel(c) {
+      const map = { high: '高', medium: '中', low: '低' };
+      return map[c] || c || '未知';
+    },
+
+    formatDate(iso) {
+      if (!iso) return '-';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      } catch { return iso; }
+    },
+
+    toggleEvidence(id) {
+      this.expandedEvidence = this.expandedEvidence === id ? null : id;
+    },
+
+    promptPat() {
+      const v = prompt(
+        'GitHub Personal Access Token\n\n' +
+        '需要 fine-grained token，scope: Contents (Read and write)\n' +
+        '仓库：' + this.GH_OWNER + '/' + this.GH_REPO + '\n\n' +
+        '存在 localStorage，可随时清除。'
+      );
+      if (v && v.trim()) {
+        this.ghPat = v.trim();
+        localStorage.setItem('sales_assistant_gh_pat', this.ghPat);
+        this.showToast('PAT 已保存');
+      }
+    },
+
+    clearPat() {
+      if (!confirm('清除 PAT？下次采纳需要重新输入。')) return;
+      this.ghPat = '';
+      localStorage.removeItem('sales_assistant_gh_pat');
+      this.showToast('PAT 已清除');
+    },
+
+    ensurePat() {
+      if (!this.ghPat) {
+        this.promptPat();
+      }
+      return !!this.ghPat;
+    },
+
+    async ghGetFile(path) {
+      const url = `https://api.github.com/repos/${this.GH_OWNER}/${this.GH_REPO}/contents/${path}?ref=${this.GH_BRANCH}`;
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': 'Bearer ' + this.ghPat,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        }
+      });
+      if (res.status === 404) return { sha: null, content: null };
+      if (!res.ok) throw new Error(`GET ${path} 失败: ${res.status}`);
+      const data = await res.json();
+      const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+      return { sha: data.sha, content: decoded };
+    },
+
+    async ghPutFile(path, content, sha, message) {
+      const url = `https://api.github.com/repos/${this.GH_OWNER}/${this.GH_REPO}/contents/${path}`;
+      const body = {
+        message,
+        content: btoa(unescape(encodeURIComponent(content))),
+        branch: this.GH_BRANCH,
+      };
+      if (sha) body.sha = sha;
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + this.ghPat,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`PUT ${path} 失败: ${res.status} ${err.substring(0, 200)}`);
+      }
+      return await res.json();
+    },
+
+    regenerateEspanso(scripts, oldYml = '') {
+      const lines = ['matches:'];
+      // 先保留旧 yml 里存在但 JSON 里没有的"孤儿"条目（例如 :test 调试用），避免重生成时丢失
+      const jsonTriggers = new Set(scripts.filter(s => s.espanso_trigger).map(s => s.espanso_trigger));
+      if (oldYml) {
+        const orphanBlocks = this.extractOrphanMatches(oldYml, jsonTriggers);
+        if (orphanBlocks.length) {
+          lines.push('  # === 孤儿条目（JSON 未登记，保留原样）===');
+          for (const block of orphanBlocks) lines.push(block);
+          lines.push('');
+        }
+      }
+      const withTrigger = scripts.filter(s => s.espanso_trigger);
+      for (const s of withTrigger) {
+        lines.push('  # ' + (s.title || ''));
+        lines.push('  - trigger: "' + s.espanso_trigger + '"');
+        const content = s.content || '';
+        if (content.includes('\n')) {
+          lines.push('    replace: |');
+          for (const ln of content.split('\n')) {
+            lines.push('      ' + ln);
+          }
+        } else {
+          // escape double quotes
+          const escaped = content.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          lines.push('    replace: "' + escaped + '"');
+        }
+        lines.push('');
+      }
+      return lines.join('\n');
+    },
+
+    extractOrphanMatches(yml, knownTriggers) {
+      // 粗粒度解析：按 "  - trigger:" 拆块，保留不在 knownTriggers 的块
+      const orphans = [];
+      const blockRegex = /(  - trigger:\s*"([^"]+)"[\s\S]*?)(?=\n  - trigger:|\n*$)/g;
+      let m;
+      while ((m = blockRegex.exec(yml)) !== null) {
+        const block = m[1].replace(/\s+$/, '');
+        const trigger = m[2];
+        if (!knownTriggers.has(trigger)) orphans.push(block);
+      }
+      return orphans;
+    },
+
+    async acceptProposal(p) {
+      if (this.isLocked()) {
+        this.showToast('私人微信数据已锁定');
+        return;
+      }
+      if (!this.ensurePat()) return;
+      if (!confirm(`采纳后将自动提交到 GitHub：\n\n${p.script_id}: ${p.diagnosis}\n\n确认采纳？`)) return;
+
+      this.ghBusy = true;
+      try {
+        // 1. 拉四个文件
+        const scriptsFile = await this.ghGetFile('sales-scripts.json');
+        const optimsFile = await this.ghGetFile('script-optimizations.json');
+        const historyFile = await this.ghGetFile('optimization-history.json');
+
+        // 2. 改 sales-scripts.json
+        const scripts = JSON.parse(scriptsFile.content);
+        const target = scripts.find(s => s.id === p.script_id);
+        if (!target) throw new Error('话术 ' + p.script_id + ' 在 sales-scripts.json 里找不到');
+        const oldContent = target.content;
+        target.content = p.new_content;
+        const newScriptsContent = JSON.stringify(scripts, null, 2) + '\n';
+
+        // 3. 重新生成 espanso（传旧 yml 进去，保留孤儿调试条目如 :test）
+        const espansoFile = await this.ghGetFile('espanso-tia-sales.yml');
+        const newEspanso = this.regenerateEspanso(scripts, espansoFile.content || '');
+
+        // 4. 追加历史
+        let history = { history: [] };
+        if (historyFile.content) {
+          try { history = JSON.parse(historyFile.content); } catch {}
+          if (!history.history) history.history = [];
+        }
+        history.history.push({
+          accepted_at: new Date().toISOString(),
+          script_id: p.script_id,
+          diagnosis: p.diagnosis,
+          old_content: oldContent,
+          new_content: p.new_content,
+          evidence_summary: (p.evidence || []).slice(0, 2).map(e => e.chat || e.snippet || '').join(' | ').substring(0, 300),
+          accepted_by: 'tia',
+          confidence: p.confidence,
+          source_proposal_id: p.id
+        });
+        const newHistoryContent = JSON.stringify(history, null, 2) + '\n';
+
+        // 5. 改 script-optimizations.json status
+        const optims = JSON.parse(optimsFile.content);
+        const op = (optims.proposals || []).find(x => x.id === p.id);
+        if (op) op.status = 'accepted';
+        const newOptimsContent = JSON.stringify(optims, null, 2) + '\n';
+
+        // 6. 串行提交（每次拿最新 sha）
+        const msg = `feat(scripts): 优化话术 ${p.script_id} via 反向分析`;
+        let r1 = await this.ghPutFile('sales-scripts.json', newScriptsContent, scriptsFile.sha, msg);
+        let r2 = await this.ghPutFile('espanso-tia-sales.yml', newEspanso, espansoFile.sha, msg + ' (espanso 同步)');
+        let r3 = await this.ghPutFile('optimization-history.json', newHistoryContent, historyFile.sha, msg + ' (历史)');
+        let r4 = await this.ghPutFile('script-optimizations.json', newOptimsContent, optimsFile.sha, msg + ' (标记采纳)');
+
+        // 本地更新 UI
+        p.status = 'accepted';
+        this.editingProposal = null;
+        this.showToast('已采纳并提交 4 个 commit');
+      } catch (e) {
+        console.error(e);
+        alert('采纳失败：' + e.message);
+      } finally {
+        this.ghBusy = false;
+      }
+    },
+
+    async ignoreProposal(p) {
+      if (!this.ensurePat()) return;
+      if (!confirm(`忽略这条建议？\n\n${p.diagnosis}`)) return;
+      this.ghBusy = true;
+      try {
+        const optimsFile = await this.ghGetFile('script-optimizations.json');
+        const optims = JSON.parse(optimsFile.content);
+        const op = (optims.proposals || []).find(x => x.id === p.id);
+        if (op) op.status = 'ignored';
+        const newContent = JSON.stringify(optims, null, 2) + '\n';
+        await this.ghPutFile('script-optimizations.json', newContent, optimsFile.sha,
+          `chore(optimizations): 忽略 ${p.id}`);
+        p.status = 'ignored';
+        this.showToast('已忽略');
+      } catch (e) {
+        console.error(e);
+        alert('忽略失败：' + e.message);
+      } finally {
+        this.ghBusy = false;
+      }
+    },
   }
 }
 </script>
