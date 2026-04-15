@@ -128,6 +128,17 @@
             </svg>
             新增
           </button>
+          <!-- 优化建议（独立工具入口，带未读徽标） -->
+          <button @click="openOptimizationsPanel()"
+            class="relative text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1 cursor-pointer shrink-0"
+            :class="showOptimizationsPanel ? 'bg-purple-600 text-white' : 'text-purple-600 hover:bg-purple-50'"
+            title="基于微信聊天反向分析话术表现">
+            <span>💡</span>
+            <span>优化建议</span>
+            <span x-show="pendingOptimizationsCount() > 0"
+              class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center"
+              x-text="pendingOptimizationsCount()"></span>
+          </button>
           <button @click="toggleAI()"
             class="text-xs px-2.5 py-1 rounded-md transition flex items-center gap-1 cursor-pointer shrink-0"
             :class="showAI ? 'bg-brand text-white' : 'text-gray-500 hover:text-gray-900'">
@@ -302,18 +313,32 @@
             <span class="opacity-60" x-text="categoryCount(cat)"></span>
           </button>
         </template>
-        <!-- 优化建议 Tab -->
-        <button @click="activeTab = '优化建议'; query = ''; loadOptimizations()"
-          class="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border cursor-pointer"
-          :class="activeTab === '优化建议' && !query ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-600 border-purple-200 hover:border-purple-400'">
-          💡 优化建议
-          <span x-show="optimizations && optimizations.proposals" class="opacity-60" x-text="(optimizations.proposals || []).filter(p => p.status === 'pending').length"></span>
-        </button>
       </div>
       </div>
 
-      <!-- 优化建议面板 -->
-      <div x-show="activeTab === '优化建议'" class="space-y-3">
+      <!-- 优化建议面板（全屏 modal，顶栏按钮触发） -->
+      <div x-show="showOptimizationsPanel"
+        @keydown.escape.window="showOptimizationsPanel = false"
+        class="fixed inset-0 bg-gray-50 z-50 overflow-y-auto"
+        x-transition.opacity>
+        <!-- Modal 顶栏 -->
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-5 py-3 flex items-center gap-3 z-10">
+          <span class="text-xl">💡</span>
+          <h2 class="text-base font-bold text-gray-900">话术优化建议</h2>
+          <span x-show="optimizations?.window_days" class="text-xs text-gray-500">
+            基于最近 <span x-text="optimizations?.window_days"></span> 天 ·
+            样本 <span x-text="optimizations?.sample_size"></span> 个联系人
+          </span>
+          <div class="flex-1"></div>
+          <button @click="loadOptimizations()" class="text-xs text-gray-500 hover:text-gray-900 cursor-pointer" title="重新加载">🔄 刷新</button>
+          <button @click="showOptimizationsPanel = false" class="text-gray-400 hover:text-gray-900 cursor-pointer" title="关闭 (Esc)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <!-- Modal 内容（居中容器） -->
+        <div class="max-w-4xl mx-auto px-5 py-5 space-y-3">
         <!-- 加载中 -->
         <div x-show="optimizationsLoading" class="bg-white rounded-md border border-gray-100 p-6 text-center text-sm text-gray-500">
           正在加载优化建议...
@@ -489,16 +514,17 @@
             </template>
           </div>
         </template>
-      </div>
+        </div><!-- /max-w-4xl -->
+      </div><!-- /优化建议 modal -->
 
       <!-- 搜索状态提示 -->
-      <div x-show="activeTab !== '优化建议' && query" class="mb-3 text-xs text-gray-500 flex items-center justify-between">
+      <div x-show="query" class="mb-3 text-xs text-gray-500 flex items-center justify-between">
         <span>搜索 "<span class="text-gray-900 font-medium" x-text="query"></span>" 找到 <span x-text="displayList.length"></span> 条</span>
         <button @click="query = ''" class="text-brand hover:underline cursor-pointer">返回分类浏览</button>
       </div>
 
       <!-- 话术列表 -->
-      <div x-show="activeTab !== '优化建议'" class="space-y-2.5">
+      <div class="space-y-2.5">
         <template x-for="(item, idx) in displayList" :key="item.id">
           <div @click="toggleExpand(item.id)" data-script-card
             class="bg-white rounded-md border relative cursor-pointer transition"
@@ -610,7 +636,7 @@
         </div>
 
         <!-- 空状态：分类下无数据 -->
-        <div x-show="activeTab !== '优化建议' && displayList.length === 0 && allScripts.length > 0 && !query" class="text-center py-12">
+        <div x-show="displayList.length === 0 && allScripts.length > 0 && !query" class="text-center py-12">
           <p class="text-gray-400 text-sm">这个分类暂时没有话术</p>
           <button x-show="activeTab === '收藏'" @click="activeTab = '全部'"
             class="text-brand text-sm mt-2 hover:underline cursor-pointer">浏览全部话术去收藏</button>
@@ -821,9 +847,11 @@ function app() {
     API_BASE: 'https://sales-assistant-api.zeabur.app',
 
     // 优化建议
+    showOptimizationsPanel: false,
     optimizations: null,
     optimizationsLoading: false,
     optimizationsLoadError: false,
+    optimizationsLoadedOnce: false,
     ghPat: localStorage.getItem('sales_assistant_gh_pat') || '',
     editingProposal: null,
     expandedEvidence: null,
@@ -960,6 +988,8 @@ function app() {
         this.loadError = true;
       }
       this.$nextTick(() => this.$refs.searchInput?.focus());
+      // 后台预加载优化建议（让顶栏徽标有未读数）
+      this.loadOptimizations();
       // 新用户首次登录自动展开 AI 面板
       if (!localStorage.getItem('hs_ai_seen')) {
         this.showAI = true;
@@ -1428,6 +1458,17 @@ function app() {
     },
 
     // ==================== 优化建议 ====================
+    openOptimizationsPanel() {
+      this.showOptimizationsPanel = true;
+      // 首次打开或未加载过 → 拉数据
+      if (!this.optimizationsLoadedOnce) this.loadOptimizations();
+    },
+
+    pendingOptimizationsCount() {
+      if (!this.optimizations || !this.optimizations.proposals) return 0;
+      return this.optimizations.proposals.filter(p => !p.status || p.status === 'pending').length;
+    },
+
     async loadOptimizations() {
       this.optimizationsLoading = true;
       this.optimizationsLoadError = false;
@@ -1441,6 +1482,7 @@ function app() {
         this.optimizationsLoadError = true;
       } finally {
         this.optimizationsLoading = false;
+        this.optimizationsLoadedOnce = true;
       }
     },
 
