@@ -1,0 +1,59 @@
+{
+  "_demo": true,
+  "_note": "⚠️ 这是演示数据，非真实分析结果。业务微信登录后跑 optimize_scripts.py 会覆盖。",
+  "generated_at": "2026-04-15T14:00:00+08:00",
+  "analyzed_account": {
+    "id": "wxid_demo_biz",
+    "wxid": "wxid_demo_biz",
+    "nickname": "星芒Tia-业务号（演示）",
+    "type": "business"
+  },
+  "window_days": 7,
+  "sample_size": 127,
+  "proposals": [
+    {
+      "id": "opt-demo-001",
+      "script_id": "espanso-请问",
+      "status": "pending",
+      "diagnosis": "开场追问太硬，3/5 客户直接已读不回；问题过长+选项过多形成"决策疲劳"",
+      "confidence": "high",
+      "old_content": "方便问一下，你现在是想解决具体问题（比如做内容、提效、搞副业），还是想系统学一遍怎么用AI？",
+      "new_content": "你好呀👋 想先大概聊聊你目前在忙什么吗？我好根据你的情况看看能怎么帮上忙～",
+      "evidence": [
+        {
+          "chat": "[客户A] 想了解下你们的产品\n[我] 方便问一下，你现在是想解决具体问题（比如做内容、提效、搞副业），还是想系统学一遍怎么用AI？\n[客户A] （已读未回 48h）",
+          "outcome": "unreplied"
+        },
+        {
+          "chat": "[客户B] 看到你公众号\n[我] 方便问一下...\n[客户B] 我先看看",
+          "outcome": "stalled"
+        }
+      ]
+    },
+    {
+      "id": "opt-demo-002",
+      "script_id": "espanso-价格",
+      "status": "pending",
+      "diagnosis": "直接报价缺引导，价格敏感客户容易流失；建议先铺垫价值再给价",
+      "confidence": "medium",
+      "old_content": "999元/年，每天2.7元，持续更新一整年。\n现在是新春体验价，原价2999，3月31日后恢复。\n不急着决定，先去官网看看试读。",
+      "new_content": "999元/年，平摊下来每天不到 3 块。知识库全年更新，AI 工具迭代了我们会同步更新内容。\n\n现在是新春体验价，原价 2999。不急着决定，我发你官网链接，先看看试读和目录，合口味再考虑👇",
+      "evidence": [
+        {
+          "chat": "[客户C] 多少钱？\n[我] 999元/年...\n[客户C] 有点贵",
+          "outcome": "price_objection"
+        }
+      ]
+    },
+    {
+      "id": "opt-demo-003",
+      "script_id": "espanso-新手",
+      "status": "accepted",
+      "diagnosis": "（历史）已采纳示例",
+      "confidence": "high",
+      "old_content": "（旧版本）",
+      "new_content": "（新版本）",
+      "evidence": []
+    }
+  ]
+}
